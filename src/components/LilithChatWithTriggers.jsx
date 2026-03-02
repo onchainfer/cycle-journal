@@ -596,23 +596,8 @@ function detectTrigger(text) {
 }
 
 // ── MOCK INITIAL MESSAGES ─────────────────────────────────────────────────────
-const INITIAL_MESSAGES = [
-    {
-        id: 1, role: "lilith",
-        text: "Hey. You're on day 25, late luteal phase. I already know what you're probably feeling. What's going on?",
-        time: "8:05 AM"
-    },
-    {
-        id: 2, role: "user",
-        text: "Woke up exhausted and I already have a headache",
-        time: "8:14 AM", tags: ["physical"]
-    },
-    {
-        id: 3, role: "lilith",
-        text: "Completely hormonal. Progesterone in free fall, estrogen at its minimum. The headache is vascular — drink water before checking your phone tomorrow. Did you take your sertraline today?",
-        time: "8:15 AM"
-    },
-];
+// Initial messages are generated dynamically in the component
+// based on real profile data — see INITIAL_MESSAGES below component definition
 
 const QUICK_TAGS = [
     { id: "food", emoji: "🍽" },
@@ -700,10 +685,26 @@ function TriggerCard({ trigger, onConfirm, onDismiss }) {
 }
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
-// onCycleEvent(action, data) — called by App.js to propagate global cycle changes
-// e.g. RESET_CYCLE → resets day counter, calendar, phase across all screens
-export default function LilithChatWithTriggers({ activeNav, setActiveNav, onCycleEvent }) {
-    const [messages, setMessages] = useState(INITIAL_MESSAGES);
+export default function LilithChatWithTriggers({
+    activeNav, setActiveNav, onCycleEvent,
+    profile = {}, cycle = {}, todayNotes = [],
+}) {
+    const getInitialMessage = () => {
+        const name = profile.name ? `, ${profile.name}` : "";
+        const dayCtx = cycle.cycleDay
+            ? `You're on day ${cycle.cycleDay}${cycle.phase ? `, ${cycle.phase} phase` : ""}.`
+            : "";
+        const notesCtx = todayNotes.length > 0
+            ? ` I can see you've already logged ${todayNotes.length} note${todayNotes.length !== 1 ? "s" : ""} today.`
+            : "";
+        return {
+            id: 1, role: "lilith",
+            text: `Hey${name}. ${dayCtx}${notesCtx} What's going on?`.trim(),
+            time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        };
+    };
+
+    const [messages, setMessages] = useState(() => [getInitialMessage()]);
     const [input, setInput] = useState("");
     const [activeTags, setActiveTags] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
@@ -720,7 +721,106 @@ export default function LilithChatWithTriggers({ activeNav, setActiveNav, onCycl
 
     const addMessage = (msg) => setMessages(m => [...m, msg]);
 
-    const sendMessage = (text = input) => {
+    // ── CLAUDE API ────────────────────────────────────────────────────────────
+    const callLilith = async (userText, tags, history) => {
+        const apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            return "I can't connect right now — API key is missing. Add REACT_APP_ANTHROPIC_API_KEY to your .env file.";
+        }
+
+        // Safely serialize profile fields — onboarding may store objects
+        const safeStr = (val) => {
+            if (!val) return null;
+            if (typeof val === "string") return val;
+            if (Array.isArray(val)) return val.map(v => typeof v === "string" ? v : v.name || v.label || JSON.stringify(v)).join(", ");
+            if (typeof val === "object") return val.name || val.label || Object.values(val).join(", ");
+            return String(val);
+        };
+
+        const { name, age, contraception, goals } = profile;
+        const conditions = safeStr(profile.conditions);
+        const medications = safeStr(profile.medications);
+        const { cycleDay, cycleLength, phase } = cycle;
+
+        const notesContext = todayNotes.length > 0
+            ? todayNotes.map(n => `- ${n.time || "earlier"}: ${n.text}${n.tags?.length ? ` [${n.tags.join(", ")}]` : ""}`).join("\n")
+            : "No notes logged yet today.";
+
+        const systemPrompt = `You are Lilith, a cycle coach and trusted confidante.
+
+Your personality: warm, direct, real — like a best friend who happens to be a gynecologist. Never preachy. Never adds unnecessary disclaimers. Validates first, informs second. Speaks like a person, not a medical pamphlet.
+
+${name ? `User's name: ${name}.` : ""}
+${age ? `Age: ${age}.` : ""}
+${conditions?.length ? `Reported conditions: ${Array.isArray(conditions) ? conditions.join(", ") : conditions}.` : ""}
+${medications ? `Current medications: ${medications}.` : ""}
+${contraception ? `Contraception: ${contraception}.` : ""}
+${cycleLength ? `Typical cycle length: ${cycleLength} days.` : ""}
+${goals ? `Their tracking goal: ${goals}.` : ""}
+
+CURRENT CYCLE:
+${cycleDay ? `- Day ${cycleDay} of ${cycleLength || 28}` : "- Cycle day unknown"}
+${phase ? `- Phase: ${phase}` : ""}
+
+TODAY'S NOTES:
+${notesContext}
+
+${tags.length > 0 ? `This message is tagged: ${tags.join(", ")}.` : ""}
+
+RESPONSE RULES:
+- Detect the user's language from their message and respond in the same language
+- Keep responses to 3-4 sentences max unless genuinely needed
+- Reference cycle day and phase when relevant — this is your superpower
+- If something sounds medically serious, suggest a doctor once, gently
+- Never say "I'm just an AI"`;
+
+        // Build conversation history for Claude
+        const apiMessages = history
+            .filter(m => m.role === "user" || m.role === "lilith")
+            .slice(-10) // last 10 messages for context
+            .map(m => ({
+                role: m.role === "lilith" ? "assistant" : "user",
+                content: m.text,
+            }));
+
+        // Add current message
+        apiMessages.push({ role: "user", content: userText });
+
+        try {
+            const res = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": apiKey,
+                    "anthropic-version": "2023-06-01",
+                    "anthropic-dangerous-direct-browser-access": "true",
+                },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-6",
+                    max_tokens: 1024,
+                    system: systemPrompt,
+                    messages: apiMessages,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (data.content?.[0]?.text) {
+                return data.content[0].text;
+            }
+            if (data.error) {
+                console.error("Lilith API error:", data.error);
+                return "Something went wrong on my end. Try again in a second.";
+            }
+            return "I didn't catch that. Can you say it again?";
+
+        } catch (err) {
+            console.error("Lilith fetch error:", err);
+            return "I'm having trouble connecting right now. Check your internet and try again.";
+        }
+    };
+
+    const sendMessage = async (text = input) => {
         if (!text.trim()) return;
 
         const userMsg = {
@@ -738,22 +838,20 @@ export default function LilithChatWithTriggers({ activeNav, setActiveNav, onCycl
         const trigger = detectTrigger(text);
         if (trigger) {
             trigger.detectedText = text.trim();
-            setTimeout(() => {
-                setPendingTrigger(trigger);
-            }, 600);
-            return; // Lilith responds after confirmation
+            setTimeout(() => setPendingTrigger(trigger), 600);
+            return;
         }
 
-        // Normal response
+        // Call real Claude API
         setIsTyping(true);
-        setTimeout(() => {
-            setIsTyping(false);
-            addMessage({
-                id: Date.now() + 1, role: "lilith",
-                text: generateResponse(text, activeTags),
-                time: getTime(),
-            });
-        }, 1600 + Math.random() * 800);
+        const currentMessages = [...messages, userMsg];
+        const response = await callLilith(text.trim(), activeTags, currentMessages);
+        setIsTyping(false);
+        addMessage({
+            id: Date.now() + 1, role: "lilith",
+            text: response,
+            time: getTime(),
+        });
     };
 
     const handleTriggerConfirm = (fields) => {
@@ -793,21 +891,6 @@ export default function LilithChatWithTriggers({ activeNav, setActiveNav, onCycl
         }, 1000);
     };
 
-    const generateResponse = (text, tags) => {
-        const t = text.toLowerCase();
-        if (tags.includes("food") || t.includes("com") || t.includes("cen"))
-            return "What you eat in this phase matters more than it seems. The estrogen drop affects your serotonin — sugar gives a quick spike that then crashes you harder. Protein + complex carbs every 3-4 hours. Your body will thank you.";
-        if (tags.includes("meds") || t.includes("pastilla") || t.includes("olvidé"))
-            return "Thanks for telling me. If it's your sertraline, a missed dose can amplify luteal symptoms. Not to scare you — just context. Does this happen often or was it an unusual day?";
-        if (tags.includes("movement") || t.includes("gym") || t.includes("ejercici"))
-            return "On day 25 your body is in conservation mode. That you went at all is a lot. Gentle movement works better here — intense cardio raises cortisol and can worsen PMDD.";
-        if (t.includes("triste") || t.includes("llorar") || t.includes("mal") || t.includes("ansio"))
-            return "What you're feeling is real and has a biochemical cause. Low estrogen directly affects serotonin and dopamine — you literally have less of the hormones that make you feel good. It's not you, it's your cycle. Want to talk about what helps on days like these?";
-        if (t.includes("dormir") || t.includes("sueño") || t.includes("insomnio"))
-            return "Premenstrual insomnia is classic — falling progesterone disrupts deep sleep. Cool room, no screens 30 min before bed. If you have magnesium glycinate, now is the time.";
-        return "Tell me more. How does that feel in your body — is it physical, emotional, or both?";
-    };
-
     return (
         <>
             <style>{css}</style>
@@ -825,7 +908,9 @@ export default function LilithChatWithTriggers({ activeNav, setActiveNav, onCycl
                             <div className="chat-name">Lilith</div>
                             <div className="chat-status-text">cycle coach · always here</div>
                         </div>
-                        <div className="chat-context-pill">Day 25 · Luteal</div>
+                        <div className="chat-context-pill">
+                            {cycle.cycleDay ? `Day ${cycle.cycleDay} · ${cycle.phase || ""}` : "Cycle not set"}
+                        </div>
                     </div>
                 </div>
 
@@ -834,15 +919,37 @@ export default function LilithChatWithTriggers({ activeNav, setActiveNav, onCycl
                     <div className="context-card">
                         <div className="context-card-label">Lilith knows</div>
                         <div className="context-pills">
-                            <span className="context-pill phase">Luteal phase</span>
-                            <span className="context-pill day">Day 25 of 28</span>
-                            <span className="context-pill">PMDD</span>
-                            <span className="context-pill">Sertraline 50mg</span>
-                            <span className="context-pill">3 notes today</span>
+                            {cycle.phase && <span className="context-pill phase">{cycle.phase} phase</span>}
+                            {cycle.cycleDay && <span className="context-pill day">Day {cycle.cycleDay} of {cycle.cycleLength || 28}</span>}
+                            {profile.conditions && (
+                                Array.isArray(profile.conditions)
+                                    ? profile.conditions.map(c => (
+                                        <span key={typeof c === "string" ? c : JSON.stringify(c)} className="context-pill">
+                                            {typeof c === "string" ? c : c.name || c.label || JSON.stringify(c)}
+                                        </span>
+                                    ))
+                                    : <span className="context-pill">
+                                        {typeof profile.conditions === "string" ? profile.conditions : JSON.stringify(profile.conditions)}
+                                    </span>
+                            )}
+                            {profile.medications && (
+                                <span className="context-pill">
+                                    {typeof profile.medications === "string"
+                                        ? profile.medications
+                                        : Array.isArray(profile.medications)
+                                            ? profile.medications.map(m => typeof m === "string" ? m : m.name || m.label || "").join(", ")
+                                            : profile.medications.name || JSON.stringify(profile.medications)}
+                                </span>
+                            )}
+                            {todayNotes.length > 0 && (
+                                <span className="context-pill">{todayNotes.length} note{todayNotes.length !== 1 ? "s" : ""} today</span>
+                            )}
                         </div>
                     </div>
 
-                    <div className="date-sep">Today — try "my period started", "starting the pill", "I think I'm ovulating"</div>
+                    <div className="date-sep">
+                        {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                    </div>
 
                     {messages.map((msg, i) => (
                         <div key={msg.id} className={`msg ${msg.role}`}>

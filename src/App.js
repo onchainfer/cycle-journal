@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Onboarding from "./components/Onboarding";
 import HomeScreen from "./components/HomeScreen";
 import JournalScreen from "./components/JournalScreen";
@@ -6,25 +6,31 @@ import LilithChatWithTriggers from "./components/LilithChatWithTriggers";
 import CycleCalendar from "./components/CycleCalendar";
 import ProfileSettings from "./components/ProfileSettings";
 
-// ── GLOBAL CYCLE STATE ────────────────────────────────────────────────────────
-// This is the single source of truth for cycle data.
-// All screens read from here. Lilith writes to here via onCycleEvent.
-
-const DEFAULT_CYCLE = {
-  startDate: new Date(2026, 1, 4), // Feb 4 — for demo
-  cycleLength: 28,
-  cycleDay: 25,
-  phase: "luteal",
-  ovulationDate: null,
-  periodEndDate: null,
-  notes: [],              // all daily notes across the app
-  changes: [],            // medication / lifestyle change log
+// ── STORAGE KEYS ──────────────────────────────────────────────────────────────
+const KEYS = {
+  PROFILE: "lilith_profile",
+  CYCLE: "lilith_cycle",
+  NOTES: "lilith_notes",
+  CHANGES: "lilith_changes",
 };
 
-function computeCycleDay(startDate) {
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function save(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { }
+}
+
+function load(key, fallback = null) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_) { return fallback; }
+}
+
+function computeCycleDay(startDate, cycleLength = 28) {
   const now = new Date();
-  const diff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-  return Math.max(1, (diff % 28) + 1);
+  const diff = Math.floor((now - new Date(startDate)) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return 1;
+  return (diff % cycleLength) + 1;
 }
 
 function computePhase(day) {
@@ -34,169 +40,251 @@ function computePhase(day) {
   return "luteal";
 }
 
-export default function App() {
-  // ── AUTH / ONBOARDING ──────────────────────────────────────────────────────
-  const [profile, setProfile] = useState(null);
+function todayKey() {
+  return new Date().toISOString().split("T")[0];
+}
 
-  // ── NAVIGATION ─────────────────────────────────────────────────────────────
+// ── DEFAULT STATE — empty, no hardcoded data ──────────────────────────────────
+const EMPTY_CYCLE = {
+  startDate: null,
+  cycleLength: 28,
+  cycleDay: null,
+  phase: null,
+  ovulationDate: null,
+  periodEndDate: null,
+};
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+export default function App() {
+
+  // Load everything from localStorage on first render
+  const [profile, setProfileState] = useState(() => load(KEYS.PROFILE, null));
+
+  const [cycle, setCycleState] = useState(() => {
+    const stored = load(KEYS.CYCLE, null);
+    if (stored?.startDate) {
+      const day = computeCycleDay(stored.startDate, stored.cycleLength);
+      return { ...stored, cycleDay: day, phase: computePhase(day) };
+    }
+    return EMPTY_CYCLE;
+  });
+
+  const [notes, setNotesState] = useState(() => load(KEYS.NOTES, []));
+  const [changes, setChangesState] = useState(() => load(KEYS.CHANGES, []));
+
+  // Navigation
   const [activeNav, setActiveNav] = useState("home");
   const [showSettings, setShowSettings] = useState(false);
 
-  // ── CYCLE STATE ─────────────────────────────────────────────────────────────
-  const [cycle, setCycle] = useState(DEFAULT_CYCLE);
+  // Persist whenever state changes
+  useEffect(() => { if (profile) save(KEYS.PROFILE, profile); }, [profile]);
+  useEffect(() => { save(KEYS.CYCLE, cycle); }, [cycle]);
+  useEffect(() => { save(KEYS.NOTES, notes); }, [notes]);
+  useEffect(() => { save(KEYS.CHANGES, changes); }, [changes]);
 
-  // ── NOTES (shared across Home + Journal) ───────────────────────────────────
-  const [notes, setNotes] = useState([
-    { id: 1, date: "2026-02-28", time: "8:12 AM", text: "Woke up with that heavy hormonal exhaustion. I know how to tell the difference now.", tags: ["physical", "emotional"] },
-    { id: 2, date: "2026-02-28", time: "11:45 AM", text: "Headache behind my eyes. Drank water.", tags: ["physical"] },
-    { id: 3, date: "2026-02-28", time: "2:30 PM", text: "Intense sugar cravings. Ate fruit but it wasn't enough.", tags: ["physical", "energy"] },
-  ]);
-
-  const addNote = useCallback((note) => {
-    setNotes(prev => [...prev, {
-      id: Date.now(),
-      date: new Date().toISOString().split("T")[0],
-      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-      ...note,
-    }]);
+  // ── SETTERS ────────────────────────────────────────────────────────────────
+  const setProfile = useCallback((p) => {
+    setProfileState(p);
+    save(KEYS.PROFILE, p);
   }, []);
 
-  // ── GLOBAL CYCLE EVENTS from Lilith ────────────────────────────────────────
-  // Called when Lilith detects and confirms a global cycle trigger.
-  const handleCycleEvent = useCallback((action, data) => {
-    setCycle(prev => {
-      switch (action) {
-
-        case "RESET_CYCLE": {
-          // New period started → reset everything
-          const newStart = data.fields?.startDate
-            ? new Date(data.fields.startDate)
-            : new Date();
-          const newDay = computeCycleDay(newStart);
-          return {
-            ...prev,
-            startDate: newStart,
-            cycleDay: 1,
-            phase: "menstrual",
-            ovulationDate: null,
-            periodEndDate: null,
-            changes: [...prev.changes, {
-              id: Date.now(),
-              date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-              text: `New cycle started. Flow: ${data.fields?.flow || "not specified"}`,
-              type: "cycle",
-              badge: "New cycle",
-            }],
-          };
-        }
-
-        case "LOG_PERIOD_END": {
-          return {
-            ...prev,
-            periodEndDate: new Date(),
-            phase: "follicular",
-            changes: [...prev.changes, {
-              id: Date.now(),
-              date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-              text: `Period ended. Duration: ${data.fields?.duration || "not specified"}`,
-              type: "cycle",
-              badge: "Period end",
-            }],
-          };
-        }
-
-        case "LOG_OVULATION": {
-          return {
-            ...prev,
-            ovulationDate: new Date(),
-            changes: [...prev.changes, {
-              id: Date.now(),
-              date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-              text: `Ovulation logged. Side: ${data.fields?.side || "not specified"}`,
-              type: "cycle",
-              badge: "Ovulation",
-            }],
-          };
-        }
-
-        case "LOG_SPOTTING":
-        case "LOG_FLOW": {
-          return {
-            ...prev,
-            changes: [...prev.changes, {
-              id: Date.now(),
-              date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-              text: action === "LOG_SPOTTING"
-                ? `Spotting logged. Color: ${data.fields?.color || "not specified"}`
-                : `Flow logged: ${data.fields?.flow || "not specified"}`,
-              type: "cycle",
-              badge: action === "LOG_SPOTTING" ? "Spotting" : "Flow",
-            }],
-          };
-        }
-
-        default:
-          return prev;
-      }
+  const setCycle = useCallback((updater) => {
+    setCycleState(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      save(KEYS.CYCLE, next);
+      return next;
     });
   }, []);
 
-  // ── ONBOARDING ─────────────────────────────────────────────────────────────
-  if (!profile) {
-    return (
-      <Onboarding
-        onComplete={(p) => {
-          setProfile(p);
-          // If user gave cycle info, seed cycle state
-          if (p.lastPeriod) {
-            const start = new Date(p.lastPeriod);
-            const day = computeCycleDay(start);
-            setCycle(prev => ({
-              ...prev,
-              startDate: start,
-              cycleDay: day,
-              phase: computePhase(day),
-              cycleLength: p.cycleLength === "short" ? 25
-                : p.cycleLength === "long" ? 35
-                  : 28,
-            }));
-          }
-        }}
-      />
-    );
-  }
+  // ── NOTES ──────────────────────────────────────────────────────────────────
+  const addNote = useCallback((note) => {
+    setNotesState(prev => {
+      const newNote = {
+        id: Date.now(),
+        date: todayKey(),
+        time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        tags: [],
+        ...note,
+      };
+      const next = [...prev, newNote];
+      save(KEYS.NOTES, next);
+      return next;
+    });
+  }, []);
 
-  // ── SETTINGS ───────────────────────────────────────────────────────────────
-  if (showSettings) {
-    return (
-      <ProfileSettings
-        profile={profile}
-        cycle={cycle}
-        onBack={() => setShowSettings(false)}
-        activeNav={activeNav}
-        setActiveNav={(nav) => { setShowSettings(false); setActiveNav(nav); }}
-      />
-    );
-  }
+  // Bulk import — used by JournalScreen's import feature
+  const addNotes = useCallback((newNotes) => {
+    setNotesState(prev => {
+      const next = [...prev, ...newNotes];
+      save(KEYS.NOTES, next);
+      return next;
+    });
+  }, []);
 
-  // ── MAIN APP ───────────────────────────────────────────────────────────────
+  const deleteNote = useCallback((id) => {
+    setNotesState(prev => {
+      const next = prev.filter(n => n.id !== id);
+      save(KEYS.NOTES, next);
+      return next;
+    });
+  }, []);
+
+  // ── CHANGES LOG ────────────────────────────────────────────────────────────
+  const addChange = useCallback((change) => {
+    setChangesState(prev => {
+      const next = [...prev, {
+        id: Date.now(),
+        date: new Date().toLocaleDateString("en-US", {
+          month: "short", day: "numeric", year: "numeric"
+        }),
+        ...change,
+      }];
+      save(KEYS.CHANGES, next);
+      return next;
+    });
+  }, []);
+
+  // ── GLOBAL CYCLE EVENTS FROM LILITH ────────────────────────────────────────
+  const handleCycleEvent = useCallback((action, data) => {
+    switch (action) {
+
+      case "RESET_CYCLE": {
+        const newStart = data.fields?.startDate
+          ? new Date(data.fields.startDate)
+          : new Date();
+        setCycle({
+          ...EMPTY_CYCLE,
+          startDate: newStart.toISOString(),
+          cycleLength: cycle.cycleLength || 28,
+          cycleDay: 1,
+          phase: "menstrual",
+        });
+        addChange({
+          text: `New cycle started. Flow: ${data.fields?.flow || "not specified"}`,
+          type: "cycle",
+          badge: "New cycle",
+        });
+        break;
+      }
+
+      case "LOG_PERIOD_END": {
+        setCycle(prev => ({
+          ...prev,
+          periodEndDate: new Date().toISOString(),
+          phase: "follicular",
+        }));
+        addChange({
+          text: `Period ended. Duration: ${data.fields?.duration || "not specified"}`,
+          type: "cycle",
+          badge: "Period end",
+        });
+        break;
+      }
+
+      case "LOG_OVULATION": {
+        setCycle(prev => ({
+          ...prev,
+          ovulationDate: new Date().toISOString(),
+        }));
+        addChange({
+          text: `Ovulation logged. Side: ${data.fields?.side || "not specified"}`,
+          type: "cycle",
+          badge: "Ovulation",
+        });
+        break;
+      }
+
+      case "LOG_SPOTTING":
+      case "LOG_FLOW": {
+        addChange({
+          text: action === "LOG_SPOTTING"
+            ? `Spotting logged. Color: ${data.fields?.color || "not specified"}`
+            : `Flow logged: ${data.fields?.flow || "not specified"}`,
+          type: "cycle",
+          badge: action === "LOG_SPOTTING" ? "Spotting" : "Flow",
+        });
+        break;
+      }
+
+      default: break;
+    }
+  }, [cycle.cycleLength, setCycle, addChange]);
+
+  // ── ONBOARDING COMPLETE ────────────────────────────────────────────────────
+  const handleOnboardingComplete = useCallback((p) => {
+    setProfile(p);
+
+    const cycleLen =
+      p.cycleLength === "short" ? 25 :
+        p.cycleLength === "long" ? 35 : 28;
+
+    if (p.lastPeriod) {
+      const start = new Date(p.lastPeriod);
+      const day = computeCycleDay(start.toISOString(), cycleLen);
+      setCycle({
+        startDate: start.toISOString(),
+        cycleLength: cycleLen,
+        cycleDay: day,
+        phase: computePhase(day),
+        ovulationDate: null,
+        periodEndDate: null,
+      });
+    } else {
+      setCycle(prev => ({ ...prev, cycleLength: cycleLen }));
+    }
+  }, [setProfile, setCycle]);
+
+  // ── RESET — clears everything, goes back to onboarding ────────────────────
+  const handleReset = useCallback(() => {
+    Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+    setProfileState(null);
+    setCycleState(EMPTY_CYCLE);
+    setNotesState([]);
+    setChangesState([]);
+    setActiveNav("home");
+    setShowSettings(false);
+  }, []);
+
+  // ── TODAY'S NOTES for Lilith context ──────────────────────────────────────
+  const todayNotes = notes.filter(n => n.date === todayKey());
+
+  // ── SHARED PROPS ───────────────────────────────────────────────────────────
   const sharedProps = {
     profile,
     cycle,
     notes,
+    todayNotes,
+    changes,
     addNote,
+    addNotes,
+    deleteNote,
     activeNav,
     setActiveNav,
     onOpenSettings: () => setShowSettings(true),
   };
 
+  // ── RENDER ─────────────────────────────────────────────────────────────────
+
+  if (!profile) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  if (showSettings) {
+    return (
+      <ProfileSettings
+        {...sharedProps}
+        onBack={() => setShowSettings(false)}
+        onReset={handleReset}
+        setActiveNav={(nav) => { setShowSettings(false); setActiveNav(nav); }}
+      />
+    );
+  }
+
   switch (activeNav) {
     case "home":
       return <HomeScreen {...sharedProps} />;
-
     case "journal":
       return <JournalScreen {...sharedProps} />;
-
     case "lilith":
       return (
         <LilithChatWithTriggers
@@ -204,10 +292,8 @@ export default function App() {
           onCycleEvent={handleCycleEvent}
         />
       );
-
     case "calendar":
       return <CycleCalendar {...sharedProps} />;
-
     default:
       return <HomeScreen {...sharedProps} />;
   }

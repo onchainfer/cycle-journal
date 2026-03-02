@@ -383,54 +383,20 @@ const PHASES = [
   { name: "luteal", days: Array.from({ length: 12 }, (_, i) => i + 17), label: "Luteal", color: "#b87590" },
 ];
 
-const CYCLE_START = new Date(2026, 1, 4); // Feb 4
-const TODAY = new Date(2026, 1, 28);      // Feb 28 = day 25
+const TODAY = new Date();
 
-function getCycleDay(date) {
-  const diff = Math.floor((date - CYCLE_START) / (1000 * 60 * 60 * 24));
-  if (diff < 0 || diff >= 28) return null;
-  return diff + 1;
+function getCycleDay(date, cycleStart, cycleLength = 28) {
+  if (!cycleStart) return null;
+  const start = new Date(cycleStart);
+  const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return null;
+  return (diff % cycleLength) + 1;
 }
 
 function getPhase(cycleDay) {
   if (!cycleDay) return null;
   return PHASES.find(p => p.days.includes(cycleDay));
 }
-
-const SAMPLE_NOTES = {
-  "2026-02-28": [
-    { time: "8:12 AM", text: "Woke up with that hormonal exhaustion. I know how to tell the difference now." },
-    { time: "11:45 AM", text: "Headache behind my eyes." },
-    { time: "2:30 PM", text: "Intense sugar cravings." },
-  ],
-  "2026-02-27": [
-    { time: "9:00 AM", text: "Productive morning, finished the report." },
-    { time: "3:15 PM", text: "Difficult meeting, affected me more than usual." },
-  ],
-  "2026-02-26": [
-    { time: "10:30 AM", text: "Good today. Trained well." },
-  ],
-  "2026-02-14": [
-    { time: "9:00 AM", text: "Lots of energy, feeling incredible today." },
-    { time: "2:00 PM", text: "Ovulation, I can feel it in my body." },
-  ],
-  "2026-02-10": [
-    { time: "8:00 AM", text: "Energy rising, good day." },
-  ],
-  "2026-02-05": [
-    { time: "7:30 AM", text: "Second day, more manageable." },
-  ],
-  "2026-02-04": [
-    { time: "9:00 AM", text: "First day of cycle. Strong cramps." },
-    { time: "6:00 PM", text: "Better than the morning but still tired." },
-  ],
-};
-
-const INSIGHTS = [
-  { icon: "📉", title: "Energy pattern", text: "Your energy drops consistently on days 23–26. Lilith has noticed this 3 cycles in a row." },
-  { icon: "🌙", title: "Best sleep days", text: "You sleep best on days 6–12 (follicular). Average 7.8 hrs vs 5.9 hrs in luteal." },
-  { icon: "💜", title: "PMDD window", text: "Your symptoms peak on days 24–27. This cycle is tracking consistently with the last two." },
-];
 
 function dateKey(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -439,9 +405,9 @@ function dateKey(y, m, d) {
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export default function CycleCalendar({ activeNav, setActiveNav }) {
-  const [viewYear, setViewYear] = useState(2026);
-  const [viewMonth, setViewMonth] = useState(1); // 0-indexed, 1 = Feb
+export default function CycleCalendar({ activeNav, setActiveNav, cycle, notes: allNotes = [] }) {
+  const [viewYear, setViewYear] = useState(TODAY.getFullYear());
+  const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
   const [selected, setSelected] = useState(null);
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -475,11 +441,20 @@ export default function CycleCalendar({ activeNav, setActiveNav }) {
     viewMonth === TODAY.getMonth() &&
     viewYear === TODAY.getFullYear();
 
+  // Build notesByDate from real notes
+  const notesByDate = {};
+  allNotes.forEach(n => {
+    if (!notesByDate[n.date]) notesByDate[n.date] = [];
+    notesByDate[n.date].push(n);
+  });
+
   const selectedEntry = selected
-    ? { date: selected, notes: SAMPLE_NOTES[selected] || [] }
+    ? { date: selected, notes: notesByDate[selected] || [] }
     : null;
 
-  const progress = (25 / 28) * 100;
+  const progress = cycle?.cycleDay && cycle?.cycleLength
+    ? (cycle.cycleDay / cycle.cycleLength) * 100
+    : 0;
 
   return (
     <>
@@ -526,9 +501,9 @@ export default function CycleCalendar({ activeNav, setActiveNav }) {
               );
 
               const key = dateKey(viewYear, viewMonth, cell.day);
-              const cDay = getCycleDay(new Date(viewYear, viewMonth, cell.day));
+              const cDay = getCycleDay(new Date(viewYear, viewMonth, cell.day), cycle?.startDate, cycle?.cycleLength);
               const phase = getPhase(cDay);
-              const notes = SAMPLE_NOTES[key];
+              const notes = notesByDate[key];
               const today = isToday(cell.day, cell.current);
 
               return (
@@ -563,7 +538,11 @@ export default function CycleCalendar({ activeNav, setActiveNav }) {
         <div className="cycle-strip">
           <div className="cycle-strip-top">
             <span className="cycle-strip-label">Current cycle</span>
-            <span className="cycle-strip-day">Day 25 · Luteal</span>
+            <span className="cycle-strip-day">
+              {cycle?.cycleDay
+                ? `Day ${cycle.cycleDay} · ${cycle.phase || ""}`
+                : "Cycle not set yet"}
+            </span>
           </div>
 
           <div className="phase-segments">
@@ -593,16 +572,44 @@ export default function CycleCalendar({ activeNav, setActiveNav }) {
         <div className="insights-section">
           <p className="insights-label">Patterns Lilith found</p>
           <div className="insight-cards">
-            {INSIGHTS.map((ins, i) => (
-              <div key={i} className="insight-card"
-                style={{ animationDelay: `${i * 0.06}s` }}>
-                <span className="insight-icon">{ins.icon}</span>
+            {allNotes.length < 10 ? (
+              <div className="insight-card">
+                <span className="insight-icon">✦</span>
                 <div className="insight-body">
-                  <div className="insight-title">{ins.title}</div>
-                  <div className="insight-text">{ins.text}</div>
+                  <div className="insight-title">Keep logging</div>
+                  <div className="insight-text">
+                    Lilith needs a few more entries to find patterns.
+                    You have {allNotes.length} note{allNotes.length !== 1 ? "s" : ""} so far — patterns appear after ~10.
+                  </div>
                 </div>
               </div>
-            ))}
+            ) : (
+              [
+                {
+                  icon: "📊",
+                  title: "Data collected",
+                  text: `${allNotes.length} notes logged. Lilith is building your pattern profile.`
+                },
+                allNotes.filter(n => n.tags?.includes("physical")).length > 3 && {
+                  icon: "💜",
+                  title: "Physical symptoms tracked",
+                  text: `${allNotes.filter(n => n.tags?.includes("physical")).length} physical notes logged across your cycle.`
+                },
+                allNotes.filter(n => n.tags?.includes("emotional")).length > 3 && {
+                  icon: "🌙",
+                  title: "Emotional patterns",
+                  text: `${allNotes.filter(n => n.tags?.includes("emotional")).length} emotional entries tracked. Lilith can see patterns in your mood cycle.`
+                },
+              ].filter(Boolean).map((ins, i) => (
+                <div key={i} className="insight-card" style={{ animationDelay: `${i * 0.06}s` }}>
+                  <span className="insight-icon">{ins.icon}</span>
+                  <div className="insight-body">
+                    <div className="insight-title">{ins.title}</div>
+                    <div className="insight-text">{ins.text}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -613,7 +620,7 @@ export default function CycleCalendar({ activeNav, setActiveNav }) {
               <div className="sheet-handle" />
               {(() => {
                 const d = new Date(selected);
-                const cDay = getCycleDay(d);
+                const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
                 const phase = getPhase(cDay);
                 return (
                   <>

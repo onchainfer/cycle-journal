@@ -341,18 +341,7 @@ const REPORTS = [
   },
 ];
 
-const CHANGES_LOG = [
-  { date: "Feb 24, 2026", text: "Started tracking sertraline dose increase — 50mg → 75mg", type: "meds", badge: "Medication" },
-  { date: "Feb 10, 2026", text: "Started going to the gym 4x per week (previously 2x)", type: "lifestyle", badge: "Lifestyle" },
-  { date: "Jan 15, 2026", text: "Stopped hormonal contraception (Yasmin, 2 years)", type: "meds", badge: "Medication" },
-  { date: "Dec 28, 2025", text: "Started magnesium glycinate 400mg nightly", type: "meds", badge: "Supplement" },
-  { date: "Dec 1, 2025", text: "Started sertraline 50mg for PMDD", type: "meds", badge: "Medication" },
-];
 
-const TEAM = [
-  { role: "Doctor", icon: "👩‍⚕️", name: "Dr. Ana Martínez", sub: "Gynecologist · Last shared Feb 20" },
-  { role: "Nutritionist", icon: "🥗", name: "Lic. Carmen Ruiz", sub: "Functional nutrition · Not yet shared" },
-];
 
 const REPORT_CONTENT = {
   doctor: {
@@ -463,7 +452,7 @@ const REPORT_CONTENT = {
   },
 };
 
-export default function ProfileSettings({ onBack, activeNav, setActiveNav }) {
+export default function ProfileSettings({ onBack, onReset, activeNav, setActiveNav, profile = {}, cycle = {}, notes = [], changes = [] }) {
   const [reportPreview, setReportPreview] = useState(null);
   const [downloaded, setDownloaded] = useState({});
 
@@ -472,7 +461,71 @@ export default function ProfileSettings({ onBack, activeNav, setActiveNav }) {
     setTimeout(() => setDownloaded(d => ({ ...d, [id]: false })), 2000);
   };
 
-  const content = reportPreview ? REPORT_CONTENT[reportPreview] : null;
+  const safeStr = (val) => {
+    if (!val) return "—";
+    if (typeof val === "string") return val;
+    if (Array.isArray(val)) return val.map(v => typeof v === "string" ? v : v.name || v.label || "").filter(Boolean).join(", ");
+    if (typeof val === "object") return val.name || val.label || Object.values(val).filter(v => typeof v === "string").join(", ");
+    return String(val);
+  };
+
+  const buildReportContent = (type) => {
+    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const noteCount = notes.length;
+    const base = {
+      doctor: {
+        eyebrow: "Clinical Report", title: "Medical Cycle Report",
+        sub: `For your doctor · Generated ${today}`,
+        sections: [{
+          title: "Patient Overview",
+          lines: [
+            { key: "Name", val: safeStr(profile.name) },
+            { key: "Age", val: safeStr(profile.age) },
+            { key: "Conditions", val: safeStr(profile.conditions) },
+            { key: "Medications", val: safeStr(profile.medications) },
+            { key: "Contraception", val: safeStr(profile.contraception) },
+            { key: "Cycle length", val: cycle.cycleLength ? `${cycle.cycleLength} days` : "—" },
+            { key: "Notes logged", val: noteCount > 0 ? `${noteCount} notes` : "None yet" },
+          ]
+        }],
+        lilith: noteCount > 5
+          ? `Based on ${noteCount} logged entries, patterns are beginning to emerge. Continue tracking for more detailed insights.`
+          : "Not enough data yet to generate clinical observations. Keep logging daily notes for Lilith to find patterns.",
+        quotes: notes.filter(n => n.tags?.includes("emotional")).slice(-3).map(n => ({
+          text: n.text, date: n.date
+        }))
+      },
+      nutritionist: {
+        eyebrow: "Nutrition Report", title: "Nutrition & Cycle Report",
+        sub: `For your nutritionist · Generated ${today}`,
+        sections: [{
+          title: "Overview",
+          lines: [
+            { key: "Notes with food tag", val: `${notes.filter(n => n.tags?.includes("food")).length}` },
+            { key: "Cycle phase now", val: safeStr(cycle.phase) },
+          ]
+        }],
+        lilith: "Nutrition patterns will appear here as you log more food-tagged notes.",
+        quotes: notes.filter(n => n.tags?.includes("food")).slice(-3).map(n => ({ text: n.text, date: n.date }))
+      },
+      trainer: {
+        eyebrow: "Training Report", title: "Training & Cycle Report",
+        sub: `For your trainer · Generated ${today}`,
+        sections: [{
+          title: "Overview",
+          lines: [
+            { key: "Notes with movement tag", val: `${notes.filter(n => n.tags?.includes("movement")).length}` },
+            { key: "Current phase", val: safeStr(cycle.phase) },
+          ]
+        }],
+        lilith: "Training performance patterns will appear here as you log more movement-tagged notes.",
+        quotes: notes.filter(n => n.tags?.includes("movement")).slice(-3).map(n => ({ text: n.text, date: n.date }))
+      },
+    };
+    return base[type] || null;
+  };
+
+  const content = reportPreview ? buildReportContent(reportPreview) : null;
 
   return (
     <>
@@ -486,8 +539,14 @@ export default function ProfileSettings({ onBack, activeNav, setActiveNav }) {
           <div className="ps-profile-row">
             <div className="ps-avatar">⚸</div>
             <div>
-              <div className="ps-name">Fernanda</div>
-              <div className="ps-meta">Day 25 · Luteal · PMDD</div>
+              <div className="ps-name">{profile.name || "Your profile"}</div>
+              <div className="ps-meta">
+                {[
+                  cycle.cycleDay ? `Day ${cycle.cycleDay}` : null,
+                  cycle.phase,
+                  profile.conditions && (Array.isArray(profile.conditions) ? profile.conditions[0] : typeof profile.conditions === "string" ? profile.conditions : null)
+                ].filter(Boolean).join(" · ") || "Complete your profile in onboarding"}
+              </div>
             </div>
           </div>
         </div>
@@ -496,24 +555,9 @@ export default function ProfileSettings({ onBack, activeNav, setActiveNav }) {
         <div className="ps-section">
           <div className="ps-section-label">My team</div>
           <div className="team-cards">
-            {TEAM.map((m, i) => (
-              <div key={i} className="team-card">
-                <div className="team-card-header">
-                  <span className="team-role-icon">{m.icon}</span>
-                  <span className="team-role-label">{m.role}</span>
-                </div>
-                <div className="team-card-name">{m.name}</div>
-                <div className="team-card-sub">{m.sub}</div>
-                <div className="team-card-actions">
-                  <button className="team-action primary"
-                    onClick={() => setReportPreview(m.role === "Doctor" ? "doctor" : "nutritionist")}>
-                    Share report
-                  </button>
-                  <button className="team-action">Edit</button>
-                  <button className="team-action">Remove</button>
-                </div>
-              </div>
-            ))}
+            <div style={{ padding: "20px", textAlign: "center", fontFamily: "'Crimson Pro',serif", fontStyle: "italic", fontSize: 14, color: "var(--ink-ghost)" }}>
+              Add your doctor, nutritionist, or trainer to share reports with them.
+            </div>
             <button className="team-add">+ Add someone to your team</button>
           </div>
         </div>
@@ -544,19 +588,35 @@ export default function ProfileSettings({ onBack, activeNav, setActiveNav }) {
         <div className="ps-section">
           <div className="ps-section-label">Medication & lifestyle changes</div>
           <div className="changes-list">
-            {CHANGES_LOG.map((c, i) => (
-              <div key={i} className="change-item">
-                <div className="change-dot-wrap">
-                  <div className={`change-dot ${c.type}`} />
-                </div>
-                <div className="change-body">
-                  <div className="change-date">{c.date}</div>
-                  <div className="change-text">{c.text}</div>
-                  <span className={`change-badge ${c.type}`}>{c.badge}</span>
-                </div>
+            {changes.length === 0 ? (
+              <div style={{ padding: "20px", textAlign: "center", fontFamily: "'Crimson Pro',serif", fontStyle: "italic", fontSize: 14, color: "var(--ink-ghost)" }}>
+                Changes you tell Lilith — new medications, lifestyle changes, cycle events — will appear here automatically.
               </div>
-            ))}
+            ) : (
+              [...changes].reverse().map((ch, i) => (
+                <div key={ch.id || i} className="change-item">
+                  <div className="change-dot-wrap">
+                    <div className={`change-dot ${ch.type || "cycle"}`} />
+                  </div>
+                  <div className="change-body">
+                    <div className="change-date">{ch.date}</div>
+                    <div className="change-text">{ch.text}</div>
+                    <span className={`change-badge ${ch.type || "cycle"}`}>{ch.badge || "Update"}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+        </div>
+
+        {/* ── RESET ── */}
+        <div className="ps-section">
+          <div className="ps-section-label">Account</div>
+          <button
+            onClick={() => { if (window.confirm("Reset all data? This will clear your profile, notes, and cycle history.")) onReset && onReset(); }}
+            style={{ width: "100%", padding: "12px", border: "1px solid rgba(232,122,122,0.3)", borderRadius: 1, background: "transparent", fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(232,122,122,0.7)", cursor: "pointer", transition: "all 0.2s" }}>
+            Reset all data
+          </button>
         </div>
 
         {/* ── SETTINGS ── */}

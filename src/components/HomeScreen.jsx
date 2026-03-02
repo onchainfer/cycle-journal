@@ -612,14 +612,6 @@ body { background: var(--void); }
 `;
 
 // ── MOCK DATA ─────────────────────────────────────────────────────────────────
-const MOCK_NOTES = [
-  { id: 1, time: "8:12 AM", text: "Woke up with that heavy exhaustion — not from bad sleep, it's hormonal. I know how to tell the difference now.", tags: ["physical", "emotional"] },
-  { id: 2, time: "11:45 AM", text: "Headache starting behind my eyes. Drank water, let's see.", tags: ["physical"] },
-  { id: 3, time: "2:30 PM", text: "Intense sugar cravings. Had some fruit but it wasn't enough lol.", tags: ["physical", "energy"] },
-];
-
-const LILITH_MESSAGE = "Day 25 — late luteal phase. What you're feeling today has a name: progesterone is dropping and estrogen is at its cycle low. The heavy fatigue, headache, and sugar cravings are your body asking for glucose and serotonin. Eat something with complex carbs before 4pm and consider skipping the intense cardio today.";
-
 const TAG_OPTIONS = [
   { value: "physical", label: "Physical", cls: "sel-phys" },
   { value: "emotional", label: "Emotional", cls: "sel-emot" },
@@ -630,15 +622,22 @@ function getTime() {
   return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-export default function HomeScreen({ profile, activeNav, setActiveNav, onOpenSettings }) {
-  const name = profile?.name || "you";
-  const cycleDay = 25;
-  const cycleDays = 28;
-  const phase = "Luteal";
-  const progress = (cycleDay / cycleDays) * 100;
-  const phaseDots = [1, 2, 3, 4].map((_, i) => i < 3);
+export default function HomeScreen({ profile, cycle, notes: allNotes, addNote, todayNotes, activeNav, setActiveNav, onOpenSettings }) {
+  const name = profile?.name || "";
 
-  const [notes, setNotes] = useState(MOCK_NOTES);
+  // Real cycle data — empty if not set yet
+  const cycleDay = cycle?.cycleDay || null;
+  const cycleDays = cycle?.cycleLength || 28;
+  const phase = cycle?.phase || null;
+  const progress = cycleDay ? (cycleDay / cycleDays) * 100 : 0;
+
+  // Phase dots: how far into the 4-phase cycle are we
+  const phaseIndex = phase === "menstrual" ? 0 : phase === "follicular" ? 1 : phase === "ovulation" ? 2 : phase === "luteal" ? 3 : -1;
+  const phaseDots = [0, 1, 2, 3].map(i => i <= phaseIndex);
+
+  // Today's notes from App.js global state
+  const todayKey = new Date().toISOString().split("T")[0];
+  const notes = (todayNotes || allNotes || []).filter(n => n.date === todayKey);
   const [quickText, setQuickText] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalText, setModalText] = useState("");
@@ -650,7 +649,7 @@ export default function HomeScreen({ profile, activeNav, setActiveNav, onOpenSet
 
   const saveNote = (text, tags) => {
     if (!text.trim()) return;
-    setNotes(n => [...n, { id: Date.now(), time: getTime(), text: text.trim(), tags }]);
+    if (addNote) addNote({ text: text.trim(), tags, date: todayKey });
   };
 
   const handleQuickSend = () => {
@@ -681,47 +680,69 @@ export default function HomeScreen({ profile, activeNav, setActiveNav, onOpenSet
         <div className="header">
           <div className="header-top">
             <div>
-              <p className="header-greeting">Good morning</p>
-              <h1 className="header-name">{name}</h1>
+              <p className="header-greeting">{new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}</p>
+              <h1 className="header-name">{name || <span style={{ fontStyle: "italic", opacity: 0.4, fontSize: "0.8em" }}>your name</span>}</h1>
             </div>
             <span className="header-symbol" onClick={() => onOpenSettings && onOpenSettings()} style={{ cursor: "pointer" }}>⚸</span>
           </div>
 
           {/* Cycle card */}
           <div className="cycle-card">
-            <div className="cycle-card-top">
-              <div>
-                <div className="cycle-day-num">{cycleDay}</div>
-                <div className="cycle-day-label">Day of cycle</div>
-              </div>
-              <div className="cycle-phase-badge">
-                <span className="phase-name">{phase}</span>
-                <div className="phase-dot-row">
-                  {phaseDots.map((a, i) => (
-                    <div key={i} className={`phase-dot ${a ? "active" : ""}`} />
-                  ))}
+            {cycleDay ? (
+              <>
+                <div className="cycle-card-top">
+                  <div>
+                    <div className="cycle-day-num">{cycleDay}</div>
+                    <div className="cycle-day-label">Day of cycle</div>
+                  </div>
+                  <div className="cycle-phase-badge">
+                    <span className="phase-name">{phase}</span>
+                    <div className="phase-dot-row">
+                      {phaseDots.map((a, i) => (
+                        <div key={i} className={`phase-dot ${a ? "active" : ""}`} />
+                      ))}
+                    </div>
+                  </div>
                 </div>
+                <div className="cycle-bar">
+                  <div className="cycle-bar-fill" style={{ width: `${progress}%` }} />
+                </div>
+                <div className="cycle-bar-labels">
+                  <span>Day 1</span>
+                  <span>Day {cycleDays}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <p style={{ fontFamily: "'Crimson Pro',serif", fontStyle: "italic", fontSize: 15, color: "var(--ink-ghost)", marginBottom: 10 }}>
+                  Tell Lilith when your last period started to track your cycle.
+                </p>
+                <button
+                  onClick={() => setActiveNav("lilith")}
+                  style={{ padding: "8px 18px", border: "1px solid rgba(196,176,232,0.3)", borderRadius: 1, background: "transparent", fontFamily: "'DM Sans',sans-serif", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--lav)", cursor: "pointer" }}>
+                  Tell Lilith ✦
+                </button>
               </div>
-            </div>
-            <div className="cycle-bar">
-              <div className="cycle-bar-fill" style={{ width: `${progress}%` }} />
-            </div>
-            <div className="cycle-bar-labels">
-              <span>Day 1</span>
-              <span>Day {cycleDays}</span>
-            </div>
+            )}
           </div>
         </div>
 
         {/* ── LILITH MESSAGE ── */}
         <div className="lilith-section">
-          <div className="lilith-card">
+          <div className="lilith-card" onClick={() => setActiveNav("lilith")} style={{ cursor: "pointer" }}>
             <div className="lilith-header">
               <div className="lilith-dot" />
               <span className="lilith-label">Lilith</span>
               <span className="lilith-time">Today</span>
             </div>
-            <p className="lilith-text">{LILITH_MESSAGE}</p>
+            <p className="lilith-text">
+              {phase === "menstrual" && "Your body is shedding and resetting. Rest is productive right now — don't push it. Iron-rich foods and heat for cramps."}
+              {phase === "follicular" && "Energy is rising. This is your window for new projects, harder workouts, and social plans. Your brain is sharper right now."}
+              {phase === "ovulation" && "You're at your peak — physically and mentally. Your communication skills and confidence are highest today."}
+              {phase === "luteal" && cycleDay && cycleDay >= 22 && "Late luteal phase. What you're feeling has a name. Progesterone is dropping, estrogen is low. Rest, complex carbs, and be gentle with yourself."}
+              {phase === "luteal" && cycleDay && cycleDay < 22 && "Early luteal phase. A good time to wind down intensity and focus on recovery. Notice what your body needs."}
+              {!phase && "Start tracking your cycle and I'll give you daily insights based on where you are. Tap to chat with me."}
+            </p>
           </div>
         </div>
 

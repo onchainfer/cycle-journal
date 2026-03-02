@@ -214,12 +214,13 @@ body{background:var(--void);}
 `;
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const CYCLE_START = new Date(2026, 1, 4);
-
-function getCycleDay(date) {
-  const diff = Math.floor((date - CYCLE_START) / (1000 * 60 * 60 * 24));
-  if (diff < 0 || diff >= 28) return null;
-  return diff + 1;
+// getCycleDay is called with the cycle prop startDate at runtime
+function getCycleDay(date, cycleStart, cycleLength = 28) {
+  if (!cycleStart) return null;
+  const start = new Date(cycleStart);
+  const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return null;
+  return (diff % cycleLength) + 1;
 }
 
 function getPhase(day) {
@@ -328,33 +329,18 @@ function parseImportText(raw) {
 }
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function JournalScreen({ activeNav, setActiveNav, notes: externalNotes, addNote }) {
-  const today = new Date(2026, 1, 28);
-  // Show 90 days of history so there's plenty of room for past entries
+export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes = [], addNote, addNotes, deleteNote: deleteNoteGlobal, cycle }) {
+  const today = new Date();
+  // Show 90 days of history
   const rangeStart = new Date(today);
   rangeStart.setDate(today.getDate() - 90);
 
-  // All days from Feb 1 → today, newest first
+  // All days in range, newest first
   const allDays = getDaysInRange(rangeStart, today);
-
-  // Merge external notes + local notes
-  const [localNotes, setLocalNotes] = useState([
-    { id: 1, date: "2026-02-28", time: "8:12 AM", text: "Woke up with that heavy hormonal exhaustion. I know how to tell the difference now.", tags: ["physical", "emotional"] },
-    { id: 2, date: "2026-02-28", time: "11:45 AM", text: "Headache behind my eyes. Drank water.", tags: ["physical"] },
-    { id: 3, date: "2026-02-28", time: "2:30 PM", text: "Intense sugar cravings. Ate fruit but it wasn't enough.", tags: ["physical", "energy"] },
-    { id: 4, date: "2026-02-27", time: "9:00 AM", text: "Surprisingly productive morning. Finished the report early.", tags: ["energy"] },
-    { id: 5, date: "2026-02-27", time: "3:15 PM", text: "Difficult meeting, affected me more than it should have. Couldn't stop thinking about it.", tags: ["emotional"] },
-    { id: 6, date: "2026-02-26", time: "10:30 AM", text: "Good today. Trained well.", tags: ["energy"] },
-    { id: 7, date: "2026-02-14", time: "9:00 AM", text: "Lots of energy, feeling incredible today.", tags: ["energy"] },
-    { id: 8, date: "2026-02-14", time: "2:00 PM", text: "Ovulation — I can feel it in my body.", tags: ["physical"] },
-    { id: 9, date: "2026-02-04", time: "9:00 AM", text: "First day of cycle. Strong cramps.", tags: ["physical"] },
-  ]);
-
-  const allNotes = localNotes;
 
   // Group by date
   const notesByDate = {};
-  allNotes.forEach(n => {
+  (allNotes || []).forEach(n => {
     if (!notesByDate[n.date]) notesByDate[n.date] = [];
     notesByDate[n.date].push(n);
   });
@@ -389,14 +375,14 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: external
       text: noteText.trim(),
       tags: noteTags,
     };
-    setLocalNotes(prev => [...prev, newNote]);
     if (addNote) addNote(newNote);
     setShowAddNote(null);
     setNoteText(""); setNoteTime(""); setNoteTags([]);
   };
 
-  const deleteNote = (id) =>
-    setLocalNotes(prev => prev.filter(n => n.id !== id));
+  const deleteNote = (id) => {
+    if (deleteNoteGlobal) deleteNoteGlobal(id);
+  };
 
   const parseImport = () => {
     if (!importText.trim()) return;
@@ -410,7 +396,8 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: external
 
   const confirmImport = () => {
     if (!importParsed) return;
-    setLocalNotes(prev => [...prev, ...importParsed]);
+    if (addNotes) addNotes(importParsed);
+    else if (addNote) importParsed.forEach(n => addNote(n));
     setShowImport(false);
     setImportText(""); setImportParsed(null);
   };
@@ -419,7 +406,7 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: external
   if (selectedDay) {
     const dayNotes = (notesByDate[selectedDay] || []).sort((a, b) => a.time.localeCompare(b.time));
     const d = new Date(selectedDay + "T12:00:00");
-    const cDay = getCycleDay(d);
+    const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
     const phase = getPhase(cDay);
     const isToday = selectedDay === dateKey(today);
     const isFuture = d > today;
@@ -563,7 +550,7 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: external
             <div className="stat-label">Total notes</div>
           </div>
           <div className="stat-card">
-            <div className="stat-num">25</div>
+            <div className="stat-num">{cycle?.cycleDay || "—"}</div>
             <div className="stat-label">Cycle day</div>
           </div>
         </div>
@@ -577,7 +564,7 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: external
               {days.map(d => {
                 const key = dateKey(d);
                 const dayNotes = notesByDate[key] || [];
-                const cDay = getCycleDay(d);
+                const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
                 const phase = getPhase(cDay);
                 const hasNotes = dayNotes.length > 0;
                 const preview = hasNotes ? dayNotes[0].text : null;
