@@ -82,7 +82,9 @@ body{background:var(--void);}
 .day-phase-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .phase-menstrual{background:#c47a7a;}.phase-follicular{background:#8b75b8;}.phase-ovulation{background:#c4b0e8;}.phase-luteal{background:#b87590;}
 .day-phase-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-ghost);}
-.day-cycle-num{font-size:10px;color:var(--ink-ghost);margin-left:auto;}
+.day-date-label{font-size:10px;color:var(--ink-soft);font-weight:500;margin-left:auto;}
+.day-cycle-num{font-size:10px;color:var(--ink-ghost);}
+.day-cycle-label{font-size:10px;color:var(--lav-dim);font-weight:500;margin-left:auto;}
 .day-preview{font-family:'Crimson Pro',serif;font-size:15px;font-style:italic;font-weight:300;color:var(--ink-ghost);line-height:1.5;transition:color 0.2s;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .day-tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
 .day-tag{font-size:9px;padding:2px 7px;border:1px solid var(--border);border-radius:1px;color:var(--ink-ghost);letter-spacing:0.04em;}
@@ -220,7 +222,9 @@ function getCycleDay(date, cycleStart, cycleLength = 28) {
   const start = new Date(cycleStart);
   const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
   if (diff < 0) return null;
-  return (diff % cycleLength) + 1;
+  
+  // CORREGIDO: No usar módulo, calcular día real del ciclo actual
+  return diff + 1;
 }
 
 function getPhase(day) {
@@ -253,10 +257,12 @@ const TAG_OPTIONS = ["physical", "emotional", "energy", "food", "movement", "med
 // "January 15: started my period, bad cramps"
 // "3/10 gym was great, lots of energy"
 
-function parseImportText(raw) {
+function parseImportText(raw, cycleStart = null, cycleLength = 28) {
   const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
   const results = [];
   const currentYear = new Date().getFullYear();
+
+  console.log('🔍 Parsing import with cycle context:', { cycleStart, cycleLength });
 
   const MONTHS = {
     jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
@@ -269,26 +275,43 @@ function parseImportText(raw) {
     let date = null;
     let text = line;
 
-    // Pattern: "Feb 3", "February 3", "feb 3rd"
+    // Pattern: "Feb 7", "February 7", "feb 7th:" - PRIORIDAD ABSOLUTA
     const monthDay = line.match(/^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?[,\-—:\s]+(.+)/i);
     if (monthDay) {
-      const mo = MONTHS[monthDay[1].toLowerCase().replace('_', '')];
+      const monthName = monthDay[1].toLowerCase().replace('_', '');
+      const mo = MONTHS[monthName];
       const dy = parseInt(monthDay[2]);
+      
       if (mo !== undefined && dy >= 1 && dy <= 31) {
         date = new Date(currentYear, mo, dy);
         text = monthDay[3].trim();
+        console.log(`✅ Parsed month/day: ${monthName} ${dy} → ${date.toDateString()}`);
       }
     }
 
-    // Pattern: "3/10", "10/3", "2026-02-10"
+    // Pattern: "07/02/2026" (dd/mm/yyyy) o "2/7" (m/d)
     if (!date) {
-      const numDate = line.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-]\d{2,4})?[,\-—:\s]+(.+)/);
+      const numDate = line.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?[,\-—:\s]+(.+)/);
       if (numDate) {
-        const a = parseInt(numDate[1]), b = parseInt(numDate[2]);
-        // assume M/D
-        if (a >= 1 && a <= 12 && b >= 1 && b <= 31) {
-          date = new Date(currentYear, a - 1, b);
-          text = numDate[3].trim();
+        const a = parseInt(numDate[1]);
+        const b = parseInt(numDate[2]); 
+        const year = numDate[3] ? parseInt(numDate[3]) : currentYear;
+        
+        // Si hay año, asumir dd/mm/yyyy, sino m/d
+        if (numDate[3]) {
+          // Format: dd/mm/yyyy
+          if (a >= 1 && a <= 31 && b >= 1 && b <= 12) {
+            date = new Date(year, b - 1, a);
+            text = numDate[4].trim();
+            console.log(`✅ Parsed dd/mm/yyyy: ${a}/${b}/${year} → ${date.toDateString()}`);
+          }
+        } else {
+          // Format: m/d
+          if (a >= 1 && a <= 12 && b >= 1 && b <= 31) {
+            date = new Date(currentYear, a - 1, b);
+            text = numDate[4].trim();
+            console.log(`✅ Parsed m/d: ${a}/${b} → ${date.toDateString()}`);
+          }
         }
       }
     }
@@ -299,10 +322,30 @@ function parseImportText(raw) {
       if (iso) {
         date = new Date(iso[1]);
         text = iso[2].trim();
+        console.log(`✅ Parsed ISO: ${iso[1]} → ${date.toDateString()}`);
       }
     }
 
-    if (!date || !text) continue;
+    if (!date || !text) {
+      console.warn(`❌ Could not parse line: ${line}`);
+      continue;
+    }
+
+    // CALCULAR CYCLE DAY basado en cycleStart
+    let cycleDay = null;
+    let cyclePhase = null;
+    let cycleId = null;
+    
+    if (cycleStart) {
+      cycleDay = getCycleDay(date, cycleStart, cycleLength);
+      cyclePhase = getPhase(cycleDay);
+      
+      // Generar cycleId basado en el ciclo start
+      const startDate = new Date(cycleStart);
+      cycleId = `cycle_${startDate.getFullYear()}_${String(startDate.getMonth() + 1).padStart(2, '0')}_${String(startDate.getDate()).padStart(2, '0')}`;
+      
+      console.log(`🧮 Calculated for ${date.toDateString()}: Day ${cycleDay}, Phase: ${cyclePhase}`);
+    }
 
     // Auto-detect tags from text
     const tags = [];
@@ -315,25 +358,71 @@ function parseImportText(raw) {
     if (/gym|yoga|run|walk|exercise|workout|pilates|entrené/.test(t)) tags.push("movement");
     if (/pill|medication|medicamento|pastilla|took|tomé/.test(t)) tags.push("meds");
 
-    results.push({
+    const entry = {
       id: Date.now() + Math.random(),
-      date: dateKey(date),
+      date: dateKey(date), // Fecha de la entrada (Feb 7, etc.)
       displayDate: date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
       time: "imported",
       text,
       tags: [...new Set(tags)],
-    });
+      
+      // DATOS DEL CICLO CALCULADOS
+      cycleDay,
+      cyclePhase, 
+      cycleId,
+      cycleStartDate: cycleStart, // Para referencia
+      
+      // TIMESTAMP CORRECTO: fecha de la nota, NO fecha de hoy
+      createdAt: date.toISOString(), // ← ESTO ERA EL PROBLEMA PRINCIPAL
+      
+      // Metadata de importación
+      imported: true,
+      importedAt: new Date().toISOString()
+    };
+
+    results.push(entry);
+    console.log(`📝 Created entry:`, entry);
   }
 
-  return results.sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = results.sort((a, b) => a.date.localeCompare(b.date));
+  console.log(`🎯 Parse complete: ${sorted.length} entries created`);
+  
+  return sorted;
 }
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes = [], addNote, addNotes, deleteNote: deleteNoteGlobal, cycle }) {
+export default function JournalScreen({ 
+  activeNav, 
+  setActiveNav, 
+  notes: allNotes = [], 
+  addNote, 
+  addNotes, 
+  deleteNote: deleteNoteGlobal, 
+  cycle,
+  currentCycle,
+  currentCycleDay,
+  currentPhase
+}) {
   const today = new Date();
-  // Show 90 days of history
-  const rangeStart = new Date(today);
-  rangeStart.setDate(today.getDate() - 90);
+  
+  // Calcular rango dinámico basado en las notas existentes
+  let rangeStart = new Date(today);
+  rangeStart.setDate(today.getDate() - 90); // Default: 90 días
+  
+  // Si hay notas, extender el rango para incluir la más antigua
+  if (allNotes && allNotes.length > 0) {
+    const oldestNoteDate = Math.min(...allNotes.map(n => new Date(n.date).getTime()));
+    const calculatedStart = new Date(oldestNoteDate);
+    
+    // Usar la fecha más antigua entre las dos
+    if (calculatedStart < rangeStart) {
+      rangeStart = calculatedStart;
+      console.log('📅 Extended range to include imported notes:', {
+        oldestNote: calculatedStart.toDateString(),
+        totalNotes: allNotes.length
+      });
+    }
+  }
 
   // All days in range, newest first
   const allDays = getDaysInRange(rangeStart, today);
@@ -343,6 +432,16 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes
   (allNotes || []).forEach(n => {
     if (!notesByDate[n.date]) notesByDate[n.date] = [];
     notesByDate[n.date].push(n);
+    
+    // Debug logging para verificar que las notas tienen cycleDayText fijo
+    if (n.cycleDayText || n.cycleDay) {
+      console.log('📋 Journal Note with cycle data:', {
+        date: n.date,
+        cycleDayText: n.cycleDayText,
+        cycleDay: n.cycleDay,
+        hasFixedDayTag: !!n.cycleDayText
+      });
+    }
   });
 
   // Views
@@ -387,29 +486,87 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes
   const parseImport = () => {
     if (!importText.trim()) return;
     setImportLoading(true);
+    
     setTimeout(() => {
-      const parsed = parseImportText(importText);
+      // Pasar contexto del ciclo para calcular cycleDay correctamente
+      const cycleStartDate = (currentCycle || cycle)?.startDate;
+      const cycleLengthValue = (currentCycle || cycle)?.cycleLength || 28;
+      
+      console.log('🔄 Starting import parse with cycle context:', {
+        cycleStartDate: cycleStartDate ? new Date(cycleStartDate).toDateString() : 'none',
+        cycleLength: cycleLengthValue,
+        sampleText: importText.slice(0, 100) + '...'
+      });
+      
+      const parsed = parseImportText(importText, cycleStartDate, cycleLengthValue);
       setImportParsed(parsed);
       setImportLoading(false);
+      
+      console.log('✅ Import parsing completed:', {
+        totalEntries: parsed.length,
+        withCycleDays: parsed.filter(p => p.cycleDay).length,
+        dateRange: parsed.length > 0 ? `${parsed[0].displayDate} - ${parsed[parsed.length - 1].displayDate}` : 'none'
+      });
     }, 800);
   };
 
   const confirmImport = () => {
-    if (!importParsed) return;
-    if (addNotes) addNotes(importParsed);
-    else if (addNote) importParsed.forEach(n => addNote(n));
+    if (!importParsed || !importParsed.length) {
+      console.warn('❌ No parsed entries to import');
+      return;
+    }
+    
+    console.log('💾 Saving imported entries:', {
+      count: importParsed.length,
+      method: addNotes ? 'bulk' : 'individual',
+      entries: importParsed.map(e => ({
+        date: e.date,
+        cycleDay: e.cycleDay,
+        text: e.text.slice(0, 30) + '...'
+      }))
+    });
+    
+    // Guardar usando el método disponible
+    if (addNotes) {
+      addNotes(importParsed);
+    } else if (addNote) {
+      importParsed.forEach(entry => addNote(entry));
+    }
+    
+    // Limpiar estado
     setShowImport(false);
-    setImportText(""); setImportParsed(null);
+    setImportText("");
+    setImportParsed(null);
+    
+    console.log('✅ Import completed successfully');
   };
 
   // ── DAY DETAIL VIEW ────────────────────────────────────────────────────────
   if (selectedDay) {
     const dayNotes = (notesByDate[selectedDay] || []).sort((a, b) => a.time.localeCompare(b.time));
     const d = new Date(selectedDay + "T12:00:00");
-    const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
-    const phase = getPhase(cDay);
+    
+    // FIX CRÍTICO: Usar Day Tag FIJO de las notas guardadas, no recalcular
+    const notesWithCycleData = dayNotes.filter(note => note.cycleDayText || note.cycleDay);
+    const fixedCycleDayText = notesWithCycleData.length > 0 
+      ? (notesWithCycleData[0].cycleDayText || `Day ${notesWithCycleData[0].cycleDay}`)
+      : null;
+    const fixedCyclePhase = notesWithCycleData.length > 0 ? notesWithCycleData[0].cyclePhase : null;
+    
+    // Fallback solo si no hay notas con cycle data guardado
+    const cDay = fixedCycleDayText ? null : getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
+    const phase = fixedCyclePhase || getPhase(cDay);
+    
     const isToday = selectedDay === dateKey(today);
     const isFuture = d > today;
+    
+    console.log('📅 Day View - Using FIXED cycle data:', {
+      selectedDay,
+      fixedCycleDayText,
+      fixedCyclePhase,
+      notesWithCycleData: notesWithCycleData.length,
+      willNotRecalculate: !!fixedCycleDayText
+    });
 
     return (
       <>
@@ -424,7 +581,9 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes
               </h2>
               <div className="dv-meta">
                 {phase && <span className="dv-phase-badge">{phase}</span>}
-                {cDay && <span className="dv-cycle-day">Day {cDay} of cycle</span>}
+                {/* FIX CRÍTICO: Mostrar Day Tag FIJO, no recalculado */}
+                {fixedCycleDayText && <span className="dv-cycle-day">{fixedCycleDayText} of cycle (fixed)</span>}
+                {!fixedCycleDayText && cDay && <span className="dv-cycle-day">Day {cDay} of cycle</span>}
               </div>
             </div>
 
@@ -517,6 +676,19 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes
     else if (d >= lastWeekStart) groupedDays["Last week"].push(d);
     else groupedDays["Earlier"].push(d);
   });
+  
+  // ORDENAR dentro de cada grupo para cronología correcta
+  // Más reciente primero en cada sección
+  Object.keys(groupedDays).forEach(key => {
+    groupedDays[key].sort((a, b) => b.getTime() - a.getTime());
+  });
+  
+  console.log('📊 Grouped days for display:', {
+    thisWeek: groupedDays["This week"].length,
+    lastWeek: groupedDays["Last week"].length, 
+    earlier: groupedDays["Earlier"].length,
+    earliestDate: groupedDays["Earlier"][groupedDays["Earlier"].length - 1]?.toDateString()
+  });
 
   return (
     <>
@@ -550,7 +722,7 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes
             <div className="stat-label">Total notes</div>
           </div>
           <div className="stat-card">
-            <div className="stat-num">{cycle?.cycleDay || "—"}</div>
+            <div className="stat-num">{currentCycleDay || cycle?.cycleDay || "—"}</div>
             <div className="stat-label">Cycle day</div>
           </div>
         </div>
@@ -564,10 +736,30 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes
               {days.map(d => {
                 const key = dateKey(d);
                 const dayNotes = notesByDate[key] || [];
-                const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
-                const phase = getPhase(cDay);
+                
+                // FIX CRÍTICO: Usar cycle day FIJO de las notas guardadas, NO calcular dinámicamente
+                const notesWithCycleData = dayNotes.filter(note => note.cycleDayText || note.cycleDay);
+                const fixedCycleDayText = notesWithCycleData.length > 0 
+                  ? (notesWithCycleData[0].cycleDayText || `Day ${notesWithCycleData[0].cycleDay}`)
+                  : null;
+                const fixedCyclePhase = notesWithCycleData.length > 0 ? notesWithCycleData[0].cyclePhase : null;
+                
+                // Solo calcular si NO hay datos guardados (fallback para notas sin cycle data)
+                const fallbackCDay = !fixedCycleDayText ? getCycleDay(d, (currentCycle || cycle)?.startDate, (currentCycle || cycle)?.cycleLength) : null;
+                const phase = fixedCyclePhase || getPhase(fallbackCDay);
+                
                 const hasNotes = dayNotes.length > 0;
                 const preview = hasNotes ? dayNotes[0].text : null;
+                
+                // Debug logging para verificar fix
+                if (hasNotes && fixedCycleDayText) {
+                  console.log('📱 Journal Card - Using FIXED day tag:', {
+                    date: key,
+                    fixedCycleDayText,
+                    fallbackWouldBe: fallbackCDay,
+                    usingFixed: true
+                  });
+                }
 
                 if (hasNotes) {
                   return (
@@ -580,7 +772,10 @@ export default function JournalScreen({ activeNav, setActiveNav, notes: allNotes
                         <div className="day-meta">
                           {phase && <div className={`day-phase-dot phase-${phase}`} />}
                           {phase && <span className="day-phase-label">{phase}</span>}
-                          {cDay && <span className="day-cycle-num">day {cDay}</span>}
+                          {/* FIX CRÍTICO: Mostrar Day Tag FIJO en lugar de fecha calendario */}
+                          {fixedCycleDayText && <span className="day-cycle-label">{fixedCycleDayText}</span>}
+                          {!fixedCycleDayText && fallbackCDay && <span className="day-cycle-label">Day {fallbackCDay}</span>}
+                          {!fixedCycleDayText && !fallbackCDay && <span className="day-date-label">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
                         </div>
                         <div className="day-preview">{preview}</div>
                         <div className="day-tags">

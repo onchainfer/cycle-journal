@@ -405,7 +405,10 @@ function getCycleDay(date, cycleStart, cycleLength = 28, cycleHistory = []) {
   const start = new Date(cycleStart);
   const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
   if (diff < 0) return null;
-  return (diff % cycleLength) + 1;
+  
+  // FIX CRÍTICO: NO usar módulo - mostrar el día REAL del ciclo (29, 30, 31...)
+  // Solo reset automático si hay un nuevo registro de período
+  return diff + 1;
 }
 
 function getPhase(cycleDay) {
@@ -420,7 +423,16 @@ function dateKey(y, m, d) {
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export default function CycleCalendar({ activeNav, setActiveNav, cycle, cycleHistory = [], notes: allNotes = [] }) {
+export default function CycleCalendar({ 
+  activeNav, 
+  setActiveNav, 
+  cycle, 
+  currentCycle,
+  currentCycleDay,
+  currentPhase,
+  cycleHistory = [], 
+  notes: allNotes = [] 
+}) {
   const [viewYear, setViewYear] = useState(TODAY.getFullYear());
   const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
   const [selected, setSelected] = useState(null);
@@ -536,7 +548,14 @@ export default function CycleCalendar({ activeNav, setActiveNav, cycle, cycleHis
                   <div className="cal-day-indicators">
                     {notes && <div className="cal-indicator ind-note" />}
                     {today && <div className="cal-indicator ind-lilith" />}
-                    {cDay && [1, 2, 3, 4, 5].includes(cDay) && <div className="cal-indicator ind-period" />}
+                    {/* FIX CRÍTICO: Solo mostrar indicador de período si hay registro REAL de sangrado */}
+                    {notes && notes.some(note => 
+                      note.tags?.includes('bleeding') || 
+                      note.tags?.includes('flow') || 
+                      note.text?.toLowerCase().includes('period') ||
+                      note.text?.toLowerCase().includes('bleeding') ||
+                      note.text?.toLowerCase().includes('flow')
+                    ) && <div className="cal-indicator ind-period" />}
                   </div>
                   {phase && (
                     <div className="phase-bar-wrap">
@@ -554,9 +573,11 @@ export default function CycleCalendar({ activeNav, setActiveNav, cycle, cycleHis
           <div className="cycle-strip-top">
             <span className="cycle-strip-label">Current cycle</span>
             <span className="cycle-strip-day">
-              {cycle?.cycleDay
-                ? `Day ${cycle.cycleDay} · ${cycle.phase || ""}`
-                : "Cycle not set yet"}
+              {(currentCycleDay || cycle?.cycleDay) ? (
+                `Day ${currentCycleDay || cycle.cycleDay}${(currentCycleDay || cycle.cycleDay) > (cycle?.cycleLength || 28) ? ` (extended)` : ''} · ${currentPhase || cycle.phase || ""}`
+              ) : (
+                "Tell Lilith when your period started"
+              )}
             </span>
           </div>
 

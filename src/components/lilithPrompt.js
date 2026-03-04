@@ -84,7 +84,7 @@ USER PROFILE:
 ${name ? `Name: ${name}` : ""}
 ${age ? `Age: ${age}` : ""}
 ${conditions?.length ? `Health conditions: ${Array.isArray(conditions) ? conditions.join(", ") : conditions}` : ""}
-${medications ? `Current medications: ${Array.isArray(medications) ? medications.map(m => typeof m === 'string' ? m : m.name || m.label || 'Unknown medication').join(", ") : typeof medications === 'string' ? medications : medications.name || medications.label || 'Unknown medication'}` : ""}
+${medications && medications.length > 0 ? `Current medications: ${Array.isArray(medications) ? medications.filter(m => !m.status || m.status === 'active').map(m => typeof m === 'string' ? m : `${m.name}${m.dose ? ` (${m.dose})` : ''}`).join(", ") : typeof medications === 'string' ? medications : medications.name || medications.label || 'Unknown medication'}` : "No current medications logged"}
 ${contraception ? `Contraception: ${contraception}` : ""}
 ${cycleLength ? `Typical cycle length: ${cycleLength} days` : ""}
 ${sleepHours ? `Sleep: ${sleepHours} hours typically` : ""}

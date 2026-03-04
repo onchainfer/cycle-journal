@@ -764,6 +764,8 @@ function TriggerCard({ trigger, onConfirm, onDismiss }) {
 export default function LilithChatWithTriggers({
     activeNav, setActiveNav, onCycleEvent, addNote, addChange, setProfile,
     profile = {}, cycle = {}, todayNotes = [], notes = [],
+    // FIX CRÍTICO: Agregar props faltantes para day tags
+    currentCycle, currentCycleDay, currentPhase,
 }) {
     const getInitialMessage = () => {
         const name = profile.name ? `, ${profile.name}` : "";
@@ -908,25 +910,73 @@ export default function LilithChatWithTriggers({
                     const currentDate = new Date().toISOString();
                     const todayDateString = currentDate.split('T')[0];
 
-                    // Update the global profile medications properly
+                    // 💊 FIX DEFINITIVO: Update profile medications con doble acción
                     setProfile(prevProfile => {
+                        console.log('💊 MEDICATION UPDATE - BEFORE:', {
+                            action: medicationForm.action,
+                            medicationName: medicationForm.name,
+                            newDose: medicationForm.dose,
+                            currentMedications: prevProfile.medications,
+                            medicationsCount: prevProfile.medications?.length || 0
+                        });
+
+                        // 🛡️ REGLA DE ORO: Preservar array existente
                         let updatedMedications = [...(prevProfile.medications || [])];
+                        
+                        console.log('💊 SPREAD OPERATOR applied - PRESERVATION CONFIRMED:', {
+                            originalCount: prevProfile.medications?.length || 0,
+                            copiedCount: updatedMedications.length,
+                            preserved: updatedMedications.length === (prevProfile.medications?.length || 0)
+                        });
+
+                        // 💊 UPSERT LOGIC: Case-insensitive comparison
+                        const normalizedName = medicationForm.name.toLowerCase().trim();
+                        
+                        const findExistingIndex = (meds, name) => {
+                            return meds.findIndex(med => {
+                                const medName = typeof med === 'string' ? med : med.name;
+                                return medName.toLowerCase().trim() === name.toLowerCase().trim() &&
+                                       (!med.status || med.status === 'active');
+                            });
+                        };
 
                         if (medicationForm.action === 'add') {
-                            // Add new medication
-                            updatedMedications.push({
-                                name: medicationForm.name,
-                                dose: medicationForm.dose,
-                                status: 'active',
-                                startDate: todayDateString,
-                                reason: medicationForm.reason
-                            });
+                            // 💊 UPSERT: Check if medication already exists
+                            const existingIndex = findExistingIndex(updatedMedications, normalizedName);
+                            
+                            if (existingIndex !== -1) {
+                                // UPDATE: Actualizar dosis del existente
+                                console.log('💊 UPSERT: Medication exists, updating dose');
+                                updatedMedications[existingIndex] = {
+                                    ...(typeof updatedMedications[existingIndex] === 'string' 
+                                        ? { name: updatedMedications[existingIndex] } 
+                                        : updatedMedications[existingIndex]),
+                                    dose: medicationForm.dose,
+                                    status: 'active',
+                                    lastUpdated: todayDateString,
+                                    reason: medicationForm.reason
+                                };
+                            } else {
+                                // INSERT: Agregar nuevo medicamento
+                                console.log('💊 UPSERT: New medication, adding to array');
+                                updatedMedications.push({
+                                    name: medicationForm.name,
+                                    dose: medicationForm.dose,
+                                    status: 'active',
+                                    startDate: todayDateString,
+                                    reason: medicationForm.reason
+                                });
+                            }
                         }
                         else if (medicationForm.action === 'change') {
+                            console.log('💊 DOSE CHANGE - BEFORE MAP');
+                            
                             // Mark current medication as inactive and add new version
                             updatedMedications = updatedMedications.map(med => {
-                                if ((typeof med === 'string' ? med : med.name) === medicationForm.name &&
+                                const medName = typeof med === 'string' ? med : med.name;
+                                if (medName.toLowerCase().trim() === normalizedName &&
                                     (!med.status || med.status === 'active')) {
+                                    console.log('💊 MARKING INACTIVE:', med);
                                     return typeof med === 'string'
                                         ? { name: med, status: 'inactive', endDate: todayDateString }
                                         : { ...med, status: 'inactive', endDate: todayDateString };
@@ -943,11 +993,18 @@ export default function LilithChatWithTriggers({
                                 reason: `Dose change: ${medicationForm.reason || 'not specified'}`,
                                 previousDose: true
                             });
+                            
+                            console.log('💊 DOSE CHANGE - COMPLETED:', {
+                                finalCount: updatedMedications.length,
+                                newMedAdded: updatedMedications[updatedMedications.length - 1]
+                            });
                         }
                         else if (medicationForm.action === 'stop') {
-                            // Mark as inactive
+                            console.log('💊 STOPPING MEDICATION');
+                            // Mark as inactive (case-insensitive)
                             updatedMedications = updatedMedications.map(med => {
-                                if ((typeof med === 'string' ? med : med.name) === medicationForm.name &&
+                                const medName = typeof med === 'string' ? med : med.name;
+                                if (medName.toLowerCase().trim() === normalizedName &&
                                     (!med.status || med.status === 'active')) {
                                     return typeof med === 'string'
                                         ? { name: med, status: 'inactive', endDate: todayDateString }
@@ -957,6 +1014,26 @@ export default function LilithChatWithTriggers({
                             });
                         }
 
+                        // 🛡️ BLINDAJE: Rechazar si el array resultante está vacío (error)
+                        if (updatedMedications.length === 0 && prevProfile.medications && prevProfile.medications.length > 0) {
+                            console.error('❌ BLINDAJE ACTIVADO: Update resultó en array vacío, rechazando cambio');
+                            return prevProfile; // NO actualizar, devolver perfil sin cambios
+                        }
+
+                        // 💊 VERIFICACIÓN FINAL
+                        const activeMeds = updatedMedications.filter(m => !m.status || m.status === 'active');
+                        console.log('💊 FINAL PROFILE UPDATE:', {
+                            action: medicationForm.action,
+                            medicationName: medicationForm.name,
+                            totalMedications: updatedMedications.length,
+                            activeMedications: activeMeds.length,
+                            onboardingMedsPreserved: updatedMedications.some(m => 
+                                !m.startDate || new Date(m.startDate) < new Date(todayDateString)
+                            ),
+                            fullArray: updatedMedications
+                        });
+
+                        // 🛡️ MERGE SEGURO: Preservar todo el perfil, solo actualizar medications
                         return { ...prevProfile, medications: updatedMedications };
                     });
 
@@ -1323,8 +1400,20 @@ export default function LilithChatWithTriggers({
             const userProfile = {
                 ...profile,
                 ...cycle,
-                tags: tags.length > 0 ? tags : undefined
+                tags: tags.length > 0 ? tags : undefined,
+                // FIX CRÍTICO: Asegurar que las medicaciones estén disponibles para Lilith
+                medications: profile?.medications || [],
+                // Log para debugging de medicaciones
+                debugMedications: true
             };
+            
+            // Debug log para verificar medicaciones
+            console.log('🧠 Lilith Context - Medications:', {
+                profileMedications: profile?.medications,
+                userProfileMedications: userProfile.medications,
+                isEmpty: !userProfile.medications || userProfile.medications.length === 0,
+                activeMeds: userProfile.medications?.filter(m => !m.status || m.status === 'active')
+            });
 
             // Prepare daily logs (recent notes)
             const dailyLogs = notes.slice(-7).map(note => ({
@@ -1506,7 +1595,33 @@ export default function LilithChatWithTriggers({
                             <div className="chat-status-text">cycle coach · always here</div>
                         </div>
                         <div className="chat-context-pill">
-                            {cycle.cycleDay ? `Day ${cycle.cycleDay} · ${cycle.phase || ""}` : "Cycle not set"}
+                            {(() => {
+                                // FIX CRÍTICO: Usar misma lógica que Home - calcular Hoy - LastPeriodDate
+                                let displayCycleDay = cycle.cycleDay || currentCycleDay;
+                                let displayPhase = cycle.phase || currentPhase;
+                                
+                                // Si no hay cycleDay pero sí hay ciclo activo, calcularlo
+                                if (!displayCycleDay && (currentCycle || cycle)) {
+                                    const cycleStart = (currentCycle || cycle).startDate;
+                                    if (cycleStart) {
+                                        const today = new Date();
+                                        const startDate = new Date(cycleStart);
+                                        const diffTime = today - startDate;
+                                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                        displayCycleDay = diffDays + 1; // Día real incluso si es 29+
+                                        
+                                        // Calcular fase
+                                        if (displayCycleDay <= 5) displayPhase = "menstrual";
+                                        else if (displayCycleDay <= 13) displayPhase = "follicular";
+                                        else if (displayCycleDay <= 16) displayPhase = "ovulation";
+                                        else displayPhase = "luteal";
+                                    }
+                                }
+                                
+                                return displayCycleDay 
+                                    ? `Day ${displayCycleDay} · ${displayPhase || ""}` 
+                                    : "Tell me when your period started";
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -1529,15 +1644,32 @@ export default function LilithChatWithTriggers({
                                         {typeof profile.conditions === "string" ? profile.conditions : JSON.stringify(profile.conditions)}
                                     </span>
                             )}
-                            {profile.medications && (
-                                <span className="context-pill">
-                                    {typeof profile.medications === "string"
-                                        ? profile.medications
-                                        : Array.isArray(profile.medications)
-                                            ? profile.medications.map(m => typeof m === "string" ? m : m.name || m.label || "").join(", ")
-                                            : profile.medications.name || JSON.stringify(profile.medications)}
-                                </span>
-                            )}
+                            {profile.medications && (() => {
+                                // FIX CRÍTICO: Filtrar solo medicaciones ACTIVAS para display
+                                const activeMeds = Array.isArray(profile.medications) 
+                                    ? profile.medications.filter(m => !m.status || m.status === 'active')
+                                    : [];
+                                
+                                const displayText = typeof profile.medications === "string"
+                                    ? profile.medications
+                                    : activeMeds.length > 0
+                                        ? activeMeds.map(m => typeof m === "string" ? m : `${m.name}${m.dose ? ` (${m.dose})` : ''}`).join(", ")
+                                        : null;
+                                
+                                // Debug log
+                                console.log('💊 CONTEXT DISPLAY - Medications:', {
+                                    total: profile.medications.length,
+                                    active: activeMeds.length,
+                                    displayText,
+                                    fullArray: profile.medications
+                                });
+                                
+                                return displayText ? (
+                                    <span className="context-pill">
+                                        {displayText}
+                                    </span>
+                                ) : null;
+                            })()}
                             {todayNotes.length > 0 && (
                                 <span className="context-pill">{todayNotes.length} note{todayNotes.length !== 1 ? "s" : ""} today</span>
                             )}

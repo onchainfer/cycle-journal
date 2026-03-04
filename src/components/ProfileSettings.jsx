@@ -945,12 +945,12 @@ function TeamFormModal({ onClose, onSave }) {
           <div className="team-form-title">Add Team Member</div>
           <div className="team-form-subtitle">Connect with your healthcare providers</div>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="team-form">
           <div className="form-group">
             <label className="form-label">Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="name"
               className="form-input"
               placeholder="Dr. Smith, Maria Lopez..."
@@ -962,7 +962,7 @@ function TeamFormModal({ onClose, onSave }) {
 
           <div className="form-group">
             <label className="form-label">Specialty</label>
-            <select 
+            <select
               name="specialty"
               className="form-input"
               value={formData.specialty}
@@ -978,8 +978,8 @@ function TeamFormModal({ onClose, onSave }) {
 
           <div className="form-group">
             <label className="form-label">Contact</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               name="contact"
               className="form-input"
               placeholder="email@example.com or WhatsApp number"
@@ -999,10 +999,25 @@ function TeamFormModal({ onClose, onSave }) {
   );
 }
 
-export default function ProfileSettings({ onBack, onReset, activeNav, setActiveNav, profile = {}, cycle = {}, notes = [], changes = [], todayNotes = [], cycleHistory = [] }) {
+export default function ProfileSettings({
+  onBack,
+  onReset,
+  activeNav,
+  setActiveNav,
+  profile = {},
+  cycle = {},
+  currentCycle,
+  currentCycleDay,
+  currentPhase,
+  notes = [],
+  changes = [],
+  todayNotes = [],
+  cycleHistory = [],
+  healthTeam: globalHealthTeam = []
+}) {
   // Force re-render when profile or changes update to reflect medication changes from chat
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   useEffect(() => {
     setRefreshTrigger(prev => prev + 1);
   }, [profile, changes]);
@@ -1014,13 +1029,14 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   const [showTeamForm, setShowTeamForm] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [healthTeam, setHealthTeam] = useState(() => {
+    // Usar el estado global si está disponible, sino cargar de localStorage
+    if (globalHealthTeam.length > 0) {
+      return globalHealthTeam;
+    }
+
     try {
       const stored = localStorage.getItem('lilith_health_team');
-      return stored ? JSON.parse(stored) : [
-        // Demo data only if no stored data
-        { id: 1, name: "Dr. Sarah Martinez", specialty: "Doctor", contact: "sarah.martinez@healthcenter.com" },
-        { id: 2, name: "Alex Chen", specialty: "Therapist", contact: "alex.chen@mindwell.com" }
-      ];
+      return stored ? JSON.parse(stored) : [];
     } catch (e) {
       return []; // Empty if localStorage fails
     }
@@ -1046,7 +1062,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   };
 
   // ── INTELLIGENT PATTERN RECOGNITION ENGINE ──────────────────────────────────
-  
+
   const analyzeSymptomPatterns = () => {
     if (notes.length === 0) {
       return [
@@ -1064,7 +1080,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
     if (analysisNotes.length < 3) {
       return [
         `${notes.length} journal entries recorded`,
-        "Continue tracking to unlock pattern insights", 
+        "Continue tracking to unlock pattern insights",
         "Patterns emerge with consistent daily logging"
       ];
     }
@@ -1082,28 +1098,28 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
 
     // Analyze timing patterns for each symptom type
     Object.entries(symptomKeywords).forEach(([symptomType, keywords]) => {
-      const symptomNotes = analysisNotes.filter(note => 
+      const symptomNotes = analysisNotes.filter(note =>
         keywords.some(keyword => note.text.toLowerCase().includes(keyword))
       );
 
       if (symptomNotes.length >= 2) {
         // Find common timing patterns
         const cycleDays = symptomNotes.map(note => note.cycleDay);
-        
+
         // Check for late luteal concentration (days 22-28)
         const lateLutealSymptoms = cycleDays.filter(day => day >= 22).length;
         if (lateLutealSymptoms >= 2) {
           const capitalizedType = symptomType.charAt(0).toUpperCase() + symptomType.slice(1);
           insights.push(`${capitalizedType} issues peak during late luteal phase (Day 22-28)`);
         }
-        
+
         // Check for pre-menstrual pattern (days 26-28 or day 1-2)
         const preMenstrualSymptoms = cycleDays.filter(day => day >= 26 || day <= 2).length;
         if (preMenstrualSymptoms >= 2 && insights.length < 3) {
           const capitalizedType = symptomType.charAt(0).toUpperCase() + symptomType.slice(1);
           insights.push(`${capitalizedType} symptoms often appear 2-3 days before/after bleeding`);
         }
-        
+
         // Check for mid-cycle patterns (ovulation, days 12-16)
         const midCycleSymptoms = cycleDays.filter(day => day >= 12 && day <= 16).length;
         if (midCycleSymptoms >= 2 && insights.length < 3) {
@@ -1116,7 +1132,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
     // Pattern 2: Phase-based energy analysis
     if (insights.length < 3) {
       const energyWords = ['energy', 'tired', 'exhausted', 'alert', 'awake', 'motivated'];
-      const energyNotes = analysisNotes.filter(note => 
+      const energyNotes = analysisNotes.filter(note =>
         energyWords.some(word => note.text.toLowerCase().includes(word))
       );
 
@@ -1137,8 +1153,8 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
     // Pattern 3: Cycle regularity and general health correlations
     if (insights.length < 3) {
       const totalCycles = 1 + (cycleHistory?.length || 0);
-      const symptomFrequency = analysisNotes.filter(note => 
-        ['pain', 'cramp', 'headache', 'bloat', 'anxious', 'tired'].some(symptom => 
+      const symptomFrequency = analysisNotes.filter(note =>
+        ['pain', 'cramp', 'headache', 'bloat', 'anxious', 'tired'].some(symptom =>
           note.text.toLowerCase().includes(symptom)
         )
       ).length;
@@ -1159,7 +1175,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
         "Continue daily tracking to strengthen pattern detection",
         "Personal insights improve with consistent data collection"
       ];
-      
+
       for (let fallback of fallbackInsights) {
         if (!insights.includes(fallback) && insights.length < 3) {
           insights.push(fallback);
@@ -1175,32 +1191,32 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
     if (!changes || changes.length === 0) {
       return "No medication changes logged yet. Tell Lilith about any medication starts, stops, or dose changes to see them here.";
     }
-    
+
     // Filter for medication-related changes
     const medicationChanges = changes
       .filter(change => {
         const text = change.text?.toLowerCase() || '';
-        return change.type === 'medication' || 
-               text.includes('medication') || 
-               text.includes('pill') ||
-               text.includes('dose') ||
-               text.includes('prescription') ||
-               text.includes('mg') ||
-               text.includes('started') ||
-               text.includes('stopped') ||
-               text.includes('sertraline') ||
-               text.includes('zoloft') ||
-               text.includes('birth control');
+        return change.type === 'medication' ||
+          text.includes('medication') ||
+          text.includes('pill') ||
+          text.includes('dose') ||
+          text.includes('prescription') ||
+          text.includes('mg') ||
+          text.includes('started') ||
+          text.includes('stopped') ||
+          text.includes('sertraline') ||
+          text.includes('zoloft') ||
+          text.includes('birth control');
       })
       .slice(0, 10) // Most recent 10
       .reverse(); // Show newest first
-    
+
     if (medicationChanges.length === 0) {
       const totalChanges = changes.length;
       return `No specific medication changes detected in ${totalChanges} logged change${totalChanges !== 1 ? 's' : ''}. Your general health changes are tracked below.`;
     }
 
-    return medicationChanges.map(change => 
+    return medicationChanges.map(change =>
       `📅 ${change.date}: ${change.text}${change.badge ? ` (${change.badge})` : ''}`
     ).join('\n\n');
   };
@@ -1209,9 +1225,9 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   const generateMedicationReport = () => {
     // Get current medications from profile
     const currentMeds = profile?.medications || [];
-    
+
     // Get medication changes from the changes log
-    const medicationChanges = changes?.filter(change => 
+    const medicationChanges = changes?.filter(change =>
       change.type === 'medication'
     ) || [];
 
@@ -1231,7 +1247,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
       .map(change => {
         // Clean format for movements
         if (change.badge === 'Started') return `${change.text} - ${change.date}`;
-        if (change.badge === 'Dose change') return `${change.text} - ${change.date}`;  
+        if (change.badge === 'Dose change') return `${change.text} - ${change.date}`;
         if (change.badge === 'Discontinued') return `${change.text} - ${change.date}`;
         return `${change.text} - ${change.date}`;
       });
@@ -1240,11 +1256,11 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
     const discontinuedMedications = currentMeds
       .filter(med => med.status === 'inactive')
       .map(med => {
-        const duration = med.startDate && med.endDate ? 
+        const duration = med.startDate && med.endDate ?
           calculateMedicationDuration(med.startDate, med.endDate) : '';
         return `${med.name}${med.dose ? ` (${med.dose})` : ''} - Stopped: ${med.endDate || 'Unknown date'}${duration ? ` (Duration: ${duration})` : ''}`;
       });
-    
+
     return {
       title: "Medication Management",
       activeMedications: activeMedications,
@@ -1262,7 +1278,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
       const end = new Date(endDate);
       const diffTime = Math.abs(end - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays < 30) return `${diffDays} days`;
       if (diffDays < 365) return `${Math.floor(diffDays / 30)} months`;
       return `${Math.floor(diffDays / 365)} years, ${Math.floor((diffDays % 365) / 30)} months`;
@@ -1272,7 +1288,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   };
 
   // ── REPORT CACHING SYSTEM ──────────────────────────────────────────────────
-  
+
   // Cache keys for different report types
   const getCacheKey = (reportType) => {
     const userId = profile?.name || 'default_user';
@@ -1282,11 +1298,11 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   // Check if cached report is still valid (less than 24 hours old)
   const isCacheValid = (cachedReport) => {
     if (!cachedReport || !cachedReport.timestamp) return false;
-    
+
     const now = Date.now();
     const cacheAge = now - cachedReport.timestamp;
     const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    
+
     return cacheAge < TWENTY_FOUR_HOURS;
   };
 
@@ -1299,7 +1315,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
       version: '1.0',
       dataHash: generateDataHash() // Hash of current data for invalidation
     };
-    
+
     try {
       localStorage.setItem(cacheKey, JSON.stringify(cacheData));
       console.log('💾 Report cached successfully:', reportType);
@@ -1311,13 +1327,13 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   // Load report from cache
   const loadReportFromCache = (reportType) => {
     const cacheKey = getCacheKey(reportType);
-    
+
     try {
       const cachedData = localStorage.getItem(cacheKey);
       if (!cachedData) return null;
-      
+
       const parsed = JSON.parse(cachedData);
-      
+
       // Check if cache is still valid
       if (!isCacheValid(parsed)) {
         // Remove expired cache
@@ -1325,7 +1341,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
         console.log('🗑️ Removed expired cache for:', reportType);
         return null;
       }
-      
+
       console.log('✨ Loaded report from cache:', reportType);
       return parsed;
     } catch (error) {
@@ -1342,7 +1358,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
       lastNoteDate: notes.length > 0 ? notes[notes.length - 1]?.date : null,
       cyclePhase: cycle?.phase
     };
-    
+
     // Simple hash function (for demonstration - in production, use a proper hash)
     return JSON.stringify(dataToHash).split('').reduce((hash, char) => {
       hash = ((hash << 5) - hash) + char.charCodeAt(0);
@@ -1353,14 +1369,14 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   // Clear all cached reports (useful for testing or data reset)
   const clearReportCache = () => {
     const userId = profile?.name || 'default_user';
-    const cacheKeys = ['doctor', 'nutritionist', 'trainer'].map(type => 
+    const cacheKeys = ['doctor', 'nutritionist', 'trainer'].map(type =>
       `lilith_report_${type}_${userId}`
     );
-    
+
     cacheKeys.forEach(key => {
       localStorage.removeItem(key);
     });
-    
+
     console.log('🧹 All report caches cleared');
   };
 
@@ -1368,7 +1384,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   const mapReportTypeToAI = (reportType) => {
     const mapping = {
       'doctor': 'medical',
-      'nutritionist': 'nutritional', 
+      'nutritionist': 'nutritional',
       'trainer': 'fitness'
     };
     return mapping[reportType] || 'medical';
@@ -1411,7 +1427,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
       const cachedReport = loadReportFromCache(reportType);
       if (cachedReport) {
         console.log('⚡ Using cached report for:', reportType);
-        
+
         // Show cached content immediately
         setGeneratedReportContent({
           type: reportType,
@@ -1421,7 +1437,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
           fromCache: true,
           cacheTimestamp: cachedReport.timestamp
         });
-        
+
         setReportPreview(reportType);
         return;
       }
@@ -1434,19 +1450,23 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
 
     try {
       console.log('🤖 Generating AI medical report for type:', reportType);
-      
+
       // Map report type and prepare data
       const aiReportType = mapReportTypeToAI(reportType);
-      
+
       // Use notes as journal data (contains daily logs)
       const journalData = notes || [];
-      
-      // Prepare user profile with cycle data
+
+      // 🏋️ Prepare user profile with cycle data AND training profile
       const userProfileForAI = {
         ...profile,
         cycleLength: cycle?.cycleLength,
         currentPhase: cycle?.phase,
+        currentCycleDay: cycle?.cycleDay,
         lastPeriodDate: cycle?.lastPeriodDate,
+        // 🏋️ Training-specific data for Performance Coach
+        exerciseTypes: profile?.exerciseTypes || [],
+        exerciseFreq: profile?.exerciseFreq || 'Not specified',
         notesCount: journalData.length
       };
 
@@ -1458,10 +1478,10 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
 
       // Load chat history for comprehensive context
       const chatHistory = JSON.parse(localStorage.getItem('lilith_chat_history') || '[]');
-      
+
       // Call AI function with chat context
       const aiResponse = await generateMedicalReport(journalData, userProfileForAI, aiReportType, chatHistory);
-      
+
       console.log('✅ Respuesta de IA recibida');
 
       // Prepare report content
@@ -1469,9 +1489,9 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
         type: reportType,
         aiType: aiReportType,
         content: aiResponse,
-        generatedAt: new Date().toLocaleDateString("en-US", { 
-          month: "long", 
-          day: "numeric", 
+        generatedAt: new Date().toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
           year: "numeric",
           hour: "numeric",
           minute: "2-digit",
@@ -1490,7 +1510,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
     } catch (error) {
       console.error('❌ Error generando reporte de IA:', error);
       setReportError(`Error al generar el reporte: ${error.message || 'Problema de conexión'}`);
-      
+
       // Fallback to static content on error
       setReportPreview(reportType);
     } finally {
@@ -1537,17 +1557,17 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
 
     // Wrap lists
     html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-    
+
     // Clean up nested ul tags
     html = html.replace(/<\/ul>\s*<ul>/g, '');
-    
+
     return html;
   };
 
   // Generate PDF report
   const generatePDF = () => {
     if (!content || !generatedReportContent) return;
-    
+
     // Create a clean print version
     const printWindow = window.open('', '_blank');
     const reportContent = content.content || '';
@@ -1713,7 +1733,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   // Generate specialized PDF for specific healthcare provider
   const generateSpecializedPDF = async (specialty, teamMember) => {
     console.log('🏥 Generating specialized report for:', specialty, teamMember.name);
-    
+
     // Map specialty to AI report type, including therapist
     const specialtyToReportType = {
       'doctor': 'medical',
@@ -1721,20 +1741,24 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
       'therapist': 'mental-health', // New type for therapists
       'trainer': 'fitness'
     };
-    
+
     const reportType = specialtyToReportType[specialty] || 'medical';
-    
+
     try {
       // Generate AI report specifically for this provider
       setIsGeneratingReport(true);
-      
-      // Use existing journal data
+
+      // 🏋️ Use existing journal data
       const journalData = notes || [];
       const userProfileForAI = {
         ...profile,
         cycleLength: cycle?.cycleLength,
         currentPhase: cycle?.phase,
+        currentCycleDay: cycle?.cycleDay,
         lastPeriodDate: cycle?.lastPeriodDate,
+        // 🏋️ Training-specific data for Performance Coach
+        exerciseTypes: profile?.exerciseTypes || [],
+        exerciseFreq: profile?.exerciseFreq || 'Not specified',
         notesCount: journalData.length
       };
 
@@ -1747,13 +1771,13 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
 
       // Load chat history for comprehensive context
       const chatHistory = JSON.parse(localStorage.getItem('lilith_chat_history') || '[]');
-      
+
       // Call AI function with chat context
       const aiResponse = await generateMedicalReport(journalData, userProfileForAI, reportType, chatHistory);
-      
+
       // Generate PDF directly
       generatePDFForProvider(aiResponse, teamMember, reportType);
-      
+
     } catch (error) {
       console.error('❌ Error generating specialized report:', error);
       alert('Error generating report for ' + teamMember.name + '. Please try again.');
@@ -1971,7 +1995,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
   // Copy shareable link
   const copyShareableLink = async () => {
     const shareableUrl = `https://lilith.app/report/temp-${Date.now()}`;
-    
+
     try {
       await navigator.clipboard.writeText(shareableUrl);
       setLinkCopied(true);
@@ -2003,7 +2027,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
           error: reportError
         };
       }
-      
+
       if (type.type === 'medication') {
         return {
           eyebrow: "Real-Time Data",
@@ -2012,7 +2036,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
           sections: [
             {
               title: "Current Medications (Active)",
-              customContent: type.activeMedications && type.activeMedications.length > 0 ? 
+              customContent: type.activeMedications && type.activeMedications.length > 0 ?
                 type.activeMedications.map(med => `• ${med}`).join('\n') :
                 "No active medications currently logged.\nUse the 💊 quick action in chat to add medications."
             },
@@ -2036,10 +2060,10 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
       const aiContent = generatedReportContent;
       const reportTitles = {
         'doctor': 'Medical Cycle Report',
-        'nutritionist': 'Nutrition & Cycle Report', 
+        'nutritionist': 'Nutrition & Cycle Report',
         'trainer': 'Training & Cycle Report'
       };
-      
+
       return {
         eyebrow: `AI-Generated ${aiContent.aiType.charAt(0).toUpperCase() + aiContent.aiType.slice(1)} Report`,
         title: reportTitles[type] || 'Cycle Report',
@@ -2145,13 +2169,13 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                     <div className="team-member-contact">{member.contact}</div>
                   </div>
                   <div className="team-card-actions">
-                    <button 
+                    <button
                       className="team-share-btn"
                       onClick={() => generateSpecializedPDF(member.specialty.toLowerCase(), member)}
                     >
                       Share Report
                     </button>
-                    <button 
+                    <button
                       className="team-remove-btn"
                       onClick={() => removeDoctor(member.id)}
                       title="Remove from team"
@@ -2177,7 +2201,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
             {REPORTS.map(r => {
               const cachedReport = loadReportFromCache(r.type);
               const hasCachedVersion = cachedReport && isCacheValid(cachedReport);
-              
+
               return (
                 <div key={r.id} className={`report-card ${hasCachedVersion ? 'has-cache' : ''}`}
                   onClick={() => generateAIReport(r.type)}>
@@ -2210,26 +2234,26 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
         {/* ── HEALTH & MEDICATION TIMELINE ── */}
         <div className="ps-section">
           <div className="ps-section-label">Health & Medication Timeline</div>
-          
+
           {(() => {
             // Get all changes and sort them chronologically
             const allChanges = [...changes].sort((a, b) => new Date(b.date) - new Date(a.date));
-            
+
             // Remove duplicates: keep most recent entry per day for same event type
             const deduplicatedChanges = allChanges.reduce((acc, change) => {
-              const existingIndex = acc.findIndex(existing => 
-                existing.date === change.date && 
+              const existingIndex = acc.findIndex(existing =>
+                existing.date === change.date &&
                 existing.type === change.type &&
                 existing.text?.toLowerCase().includes('cycle') === change.text?.toLowerCase().includes('cycle')
               );
-              
+
               if (existingIndex === -1) {
                 acc.push(change);
               } else {
                 // Keep the one with more information (longer text or specific flow info)
                 const existing = acc[existingIndex];
                 if ((change.text?.length || 0) > (existing.text?.length || 0) ||
-                    (change.text?.toLowerCase().includes('flow:') && !existing.text?.toLowerCase().includes('flow:'))) {
+                  (change.text?.toLowerCase().includes('flow:') && !existing.text?.toLowerCase().includes('flow:'))) {
                   acc[existingIndex] = change;
                 }
               }
@@ -2239,9 +2263,9 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
             // Humanize text descriptions
             const humanizeText = (text, type, badge) => {
               if (!text) return text;
-              
+
               const lowerText = text.toLowerCase();
-              
+
               // Medication changes
               if (type === 'medication' || lowerText.includes('medication') || lowerText.includes('pill')) {
                 if (lowerText.includes('started') || badge === 'Started') {
@@ -2254,37 +2278,37 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                   return text.replace(/dose change/i, 'Dose adjusted');
                 }
               }
-              
+
               // Cycle changes  
               if (lowerText.includes('new cycle') || lowerText.includes('cycle started')) {
                 const flowMatch = text.match(/flow:\s*(\w+)/i);
                 const flowText = flowMatch ? ` (${flowMatch[1]} flow)` : '';
                 return `New cycle started${flowText}`;
               }
-              
+
               if (lowerText.includes('period ended')) {
                 return text.replace(/period ended/i, 'Period ended');
               }
-              
+
               if (lowerText.includes('ovulation')) {
                 return text.replace(/ovulation logged/i, 'Ovulation detected');
               }
-              
+
               return text;
             };
 
             // Get color class based on type and content
             const getEventColor = (change) => {
-              if (change.type === 'medication' || 
-                  change.text?.toLowerCase().includes('medication') ||
-                  change.text?.toLowerCase().includes('pill') ||
-                  change.text?.toLowerCase().includes('dose')) {
+              if (change.type === 'medication' ||
+                change.text?.toLowerCase().includes('medication') ||
+                change.text?.toLowerCase().includes('pill') ||
+                change.text?.toLowerCase().includes('dose')) {
                 return 'timeline-dot-blue';
               }
-              if (change.type === 'cycle' || 
-                  change.text?.toLowerCase().includes('cycle') ||
-                  change.text?.toLowerCase().includes('period') ||
-                  change.text?.toLowerCase().includes('ovulation')) {
+              if (change.type === 'cycle' ||
+                change.text?.toLowerCase().includes('cycle') ||
+                change.text?.toLowerCase().includes('period') ||
+                change.text?.toLowerCase().includes('ovulation')) {
                 return 'timeline-dot-red';
               }
               return 'timeline-dot-grey';
@@ -2299,13 +2323,13 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
             }, {});
 
             return Object.keys(groupedByDate).length === 0 ? (
-              <div style={{ 
-                padding: "32px 20px", 
-                textAlign: "center", 
-                fontFamily: "'Crimson Pro',serif", 
-                fontStyle: "italic", 
-                fontSize: 14, 
-                color: "var(--ink-ghost)" 
+              <div style={{
+                padding: "32px 20px",
+                textAlign: "center",
+                fontFamily: "'Crimson Pro',serif",
+                fontStyle: "italic",
+                fontSize: 14,
+                color: "var(--ink-ghost)"
               }}>
                 Your health and medication changes will appear here as you share them with Lilith.
               </div>
@@ -2325,8 +2349,8 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                             {humanizeText(change.text, change.type, change.badge)}
                           </div>
                           <div className={`timeline-badge ${change.type || "general"}`}>
-                            {change.badge || (change.type === 'medication' ? 'Medication' : 
-                                             change.type === 'cycle' ? 'Cycle' : 'Update')}
+                            {change.badge || (change.type === 'medication' ? 'Medication' :
+                              change.type === 'cycle' ? 'Cycle' : 'Update')}
                           </div>
                         </div>
                       </div>
@@ -2345,7 +2369,7 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
             const notesWithCycleContext = notes.filter(note => note.cycleDay && note.cyclePhase);
             const notesWithoutContext = notes.filter(note => !note.cycleDay);
             const totalCycles = 1 + (cycleHistory?.length || 0);
-            
+
             return (
               <div className="data-health-panel">
                 <div className="data-stat-row">
@@ -2363,12 +2387,12 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                   <span className="data-stat-label">Cycle history preserved</span>
                   <span className="data-stat-value">{cycleHistory?.length || 0} cycles ✓</span>
                 </div>
-                
+
                 {notesWithoutContext.length > 0 && (
                   <div className="data-integrity-warning">
                     <div className="warning-icon">⚠️</div>
                     <div className="warning-text">
-                      {notesWithoutContext.length} notes missing cycle context. 
+                      {notesWithoutContext.length} notes missing cycle context.
                       This can happen with imported notes or old data.
                     </div>
                   </div>
@@ -2410,8 +2434,8 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
 
         {/* ── TEAM FORM MODAL ── */}
         {showTeamForm && (
-          <TeamFormModal 
-            onClose={() => setShowTeamForm(false)} 
+          <TeamFormModal
+            onClose={() => setShowTeamForm(false)}
             onSave={(newMember) => setHealthTeam(prev => [...prev, newMember])}
           />
         )}
@@ -2451,16 +2475,16 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Refresh button for AI reports */}
                   {generatedReportContent && ['doctor', 'nutritionist', 'trainer'].includes(reportPreview) && (
                     <div className="report-header-actions">
-                      <button 
+                      <button
                         className="refresh-btn"
                         onClick={() => generateAIReport(reportPreview, true)}
                         disabled={isGeneratingReport}
-                        title={generatedReportContent.fromCache ? 
-                          "Generate fresh report with latest data" : 
+                        title={generatedReportContent.fromCache ?
+                          "Generate fresh report with latest data" :
                           "Regenerate report"
                         }
                       >
@@ -2484,8 +2508,8 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                     </div>
                   )}
 
-                  <div className="markdown-content" 
-                       dangerouslySetInnerHTML={{ __html: formatMarkdownToHTML(content.content) }}>
+                  <div className="markdown-content"
+                    dangerouslySetInnerHTML={{ __html: formatMarkdownToHTML(content.content) }}>
                   </div>
                 </div>
               ) : (
@@ -2502,11 +2526,11 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                       ))}
                       {sec.customContent && (
                         <div className="report-custom-content">
-                          <pre style={{ 
-                            fontFamily: "'Crimson Pro', serif", 
-                            fontSize: "14px", 
-                            lineHeight: "1.6", 
-                            color: "var(--ink-soft)", 
+                          <pre style={{
+                            fontFamily: "'Crimson Pro', serif",
+                            fontSize: "14px",
+                            lineHeight: "1.6",
+                            color: "var(--ink-soft)",
                             whiteSpace: "pre-wrap",
                             margin: "8px 0"
                           }}>
@@ -2547,13 +2571,13 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
                   setGeneratedReportContent(null);
                   setReportError(null);
                 }}>Close</button>
-                
+
                 <button className="sheet-btn primary" onClick={copyShareableLink}>
                   {linkCopied ? '✓ Link copied!' : 'Copy shareable link'}
                 </button>
-                
-                <button 
-                  className="sheet-btn primary" 
+
+                <button
+                  className="sheet-btn primary"
                   onClick={generatePDF}
                   disabled={!content || !generatedReportContent}
                 >

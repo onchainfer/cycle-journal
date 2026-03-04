@@ -643,14 +643,59 @@ function getTime() {
   return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-export default function HomeScreen({ profile, cycle, notes: allNotes, addNote, todayNotes, activeNav, setActiveNav, onOpenSettings }) {
+export default function HomeScreen({ 
+  profile, 
+  cycle, 
+  currentCycle,
+  currentCycleDay, 
+  currentPhase,
+  notes: allNotes, 
+  addNote, 
+  todayNotes, 
+  activeNav, 
+  setActiveNav, 
+  onOpenSettings 
+}) {
   const name = profile?.name || "";
 
-  // Real cycle data — empty if not set yet
-  const cycleDay = cycle?.cycleDay || null;
-  const cycleDays = cycle?.cycleLength || 28;
-  const phase = cycle?.phase || null;
-  const progress = cycleDay ? (cycleDay / cycleDays) * 100 : 0;
+  // USAR EL NUEVO SISTEMA UNIFICADO - FIXED: No más "Cycle not set" para Day 29+
+  let cycleDay = currentCycleDay || cycle?.cycleDay || null;
+  let phase = currentPhase || cycle?.phase || null;
+  
+  // FIX CRÍTICO: Si no hay cycleDay pero sí hay un cycle activo, calcularlo manualmente
+  if (!cycleDay && (currentCycle || cycle)) {
+    const cycleStart = (currentCycle || cycle).startDate;
+    if (cycleStart) {
+      const today = new Date();
+      const startDate = new Date(cycleStart);
+      const diffTime = today - startDate;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      cycleDay = diffDays + 1; // Día real del ciclo, incluso si es 29, 30, 31...
+      
+      // Calcular fase basada en el día real
+      if (cycleDay <= 5) phase = "menstrual";
+      else if (cycleDay <= 13) phase = "follicular";
+      else if (cycleDay <= 16) phase = "ovulation";
+      else phase = "luteal";
+      
+      console.log('🔧 FIX Applied - Calculated missing cycleDay:', {
+        cycleStart: new Date(cycleStart).toDateString(),
+        today: today.toDateString(),
+        calculatedDay: cycleDay,
+        calculatedPhase: phase
+      });
+    }
+  }
+  
+  const cycleDays = (currentCycle || cycle)?.cycleLength || 28;
+  const progress = cycleDay ? Math.min((cycleDay / cycleDays) * 100, 100) : 0;
+  
+  console.log('🏠 HomeScreen render:', {
+    currentCycleDay,
+    cycleDay,
+    phase,
+    progress: `${progress.toFixed(1)}%`
+  });
 
   // Phase dots: how far into the 4-phase cycle are we
   const phaseIndex = phase === "menstrual" ? 0 : phase === "follicular" ? 1 : phase === "ovulation" ? 2 : phase === "luteal" ? 3 : -1;
@@ -822,10 +867,14 @@ export default function HomeScreen({ profile, cycle, notes: allNotes, addNote, t
                 <div className="cycle-card-top">
                   <div>
                     <div className="cycle-day-num">{cycleDay}</div>
-                    <div className="cycle-day-label">Day of cycle</div>
+                    <div className="cycle-day-label">
+                      {cycleDay > cycleDays ? `Day of extended cycle` : `Day of cycle`}
+                    </div>
                   </div>
                   <div className="cycle-phase-badge">
-                    <span className="phase-name">{phase}</span>
+                    <span className="phase-name">
+                      {cycleDay > cycleDays ? `${phase} (extended)` : phase}
+                    </span>
                     <div className="phase-dot-row">
                       {phaseDots.map((a, i) => (
                         <div key={i} className={`phase-dot ${a ? "active" : ""}`} />
@@ -835,10 +884,20 @@ export default function HomeScreen({ profile, cycle, notes: allNotes, addNote, t
                 </div>
                 <div className="cycle-bar">
                   <div className="cycle-bar-fill" style={{ width: `${progress}%` }} />
+                  {cycleDay > cycleDays && (
+                    <div className="cycle-bar-extended" style={{ 
+                      width: `${Math.min(((cycleDay - cycleDays) / 14) * 100, 100)}%`,
+                      background: 'rgba(232, 180, 196, 0.3)',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: '100%'
+                    }} />
+                  )}
                 </div>
                 <div className="cycle-bar-labels">
                   <span>Day 1</span>
-                  <span>Day {cycleDays}</span>
+                  <span>{cycleDay > cycleDays ? `Day ${cycleDay} (${cycleDays}+${cycleDay - cycleDays})` : `Day ${cycleDays}`}</span>
                 </div>
               </>
             ) : (

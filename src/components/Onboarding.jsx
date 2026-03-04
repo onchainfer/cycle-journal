@@ -798,7 +798,7 @@ export default function Onboarding({ onComplete }) {
     const next = () => setStep(s => Math.min(s + 1, TOTAL + 1));
     const back = () => setStep(s => Math.max(s - 1, 1));
 
-    // Language selection
+    // Start screen - single button
     if (!lang) return (
         <>
             <style>{css}</style>
@@ -807,10 +807,23 @@ export default function Onboarding({ onComplete }) {
                 <div className="lang-screen">
                     <span className="lang-symbol">⚸</span>
                     <h1 className="lang-title" style={{ whiteSpace: "pre-line" }}>{T.en.langTitle}</h1>
-                    <p className="lang-sub">{T.en.langSub}</p>
-                    <div className="lang-btns">
-                        <button className="lang-btn" onClick={() => setLang("en")}>{T.en.langEn}</button>
-                        <button className="lang-btn" onClick={() => setLang("es")}>{T.en.langEs}</button>
+                    <p className="lang-sub">Your cycle, understood.</p>
+                    <div style={{ marginTop: '48px' }}>
+                        <button 
+                            className="ob-cta" 
+                            onClick={() => setLang("en")}
+                            style={{ 
+                                maxWidth: '200px', 
+                                margin: '0 auto',
+                                display: 'block',
+                                fontSize: '13px',
+                                fontWeight: '400',
+                                letterSpacing: '0.15em',
+                                padding: '20px 40px'
+                            }}
+                        >
+                            Start
+                        </button>
                     </div>
                 </div>
             </div>
@@ -836,7 +849,20 @@ export default function Onboarding({ onComplete }) {
                         </div>
                         <p className="lilith-msg">{t.s15LilithMsg}</p>
                     </div>
-                    <button className="ob-cta" onClick={() => onComplete && onComplete(profile, lang)}>
+                    <button className="ob-cta" onClick={() => {
+                        console.log('🚨 ONBOARDING BUTTON CLICKED!');
+                        console.log('📋 Profile data to send:', profile);
+                        console.log('🌍 Language:', lang);
+                        console.log('🔧 onComplete function exists?', !!onComplete);
+                        
+                        if (onComplete) {
+                            console.log('✅ Calling onComplete...');
+                            onComplete(profile, lang);
+                            console.log('✅ onComplete called successfully');
+                        } else {
+                            console.error('❌ ERROR: onComplete function is missing!');
+                        }
+                    }}>
                         {t.s15Cta}
                     </button>
                 </div>
