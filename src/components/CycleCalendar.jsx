@@ -369,9 +369,9 @@ body{background:var(--void);}
   display:flex;flex-direction:column;align-items:center;gap:4px;
   background:none;border:none;cursor:pointer;padding:4px 16px;
 }
-.nav-icon{font-size:18px;line-height:1;opacity:0.4;}
+.nav-icon{font-size:18px;line-height:1;opacity:0.4;color:var(--ink-ghost);width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .nav-label{font-size:9px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-ghost);}
-.nav-item.active .nav-icon{opacity:1;}
+.nav-item.active .nav-icon{opacity:1;color:var(--lav);}
 .nav-item.active .nav-label{color:var(--lav);}
 `;
 
@@ -385,7 +385,22 @@ const PHASES = [
 
 const TODAY = new Date();
 
-function getCycleDay(date, cycleStart, cycleLength = 28) {
+function getCycleDay(date, cycleStart, cycleLength = 28, cycleHistory = []) {
+  // Check historical cycles first
+  for (const historicalCycle of cycleHistory) {
+    if (historicalCycle.startDate && historicalCycle.endDate) {
+      const histStart = new Date(historicalCycle.startDate);
+      const histEnd = new Date(historicalCycle.endDate);
+      
+      // If date falls within a historical cycle
+      if (date >= histStart && date < histEnd) {
+        const diff = Math.floor((date - histStart) / (1000 * 60 * 60 * 24));
+        return diff + 1; // Historical cycles use actual days
+      }
+    }
+  }
+  
+  // Use current cycle if no historical match
   if (!cycleStart) return null;
   const start = new Date(cycleStart);
   const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
@@ -405,7 +420,7 @@ function dateKey(y, m, d) {
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export default function CycleCalendar({ activeNav, setActiveNav, cycle, notes: allNotes = [] }) {
+export default function CycleCalendar({ activeNav, setActiveNav, cycle, cycleHistory = [], notes: allNotes = [] }) {
   const [viewYear, setViewYear] = useState(TODAY.getFullYear());
   const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
   const [selected, setSelected] = useState(null);
@@ -501,7 +516,7 @@ export default function CycleCalendar({ activeNav, setActiveNav, cycle, notes: a
               );
 
               const key = dateKey(viewYear, viewMonth, cell.day);
-              const cDay = getCycleDay(new Date(viewYear, viewMonth, cell.day), cycle?.startDate, cycle?.cycleLength);
+              const cDay = getCycleDay(new Date(viewYear, viewMonth, cell.day), cycle?.startDate, cycle?.cycleLength, cycleHistory);
               const phase = getPhase(cDay);
               const notes = notesByDate[key];
               const today = isToday(cell.day, cell.current);
@@ -620,7 +635,7 @@ export default function CycleCalendar({ activeNav, setActiveNav, cycle, notes: a
               <div className="sheet-handle" />
               {(() => {
                 const d = new Date(selected);
-                const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
+                const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength, cycleHistory);
                 const phase = getPhase(cDay);
                 return (
                   <>

@@ -10,6 +10,7 @@ import ProfileSettings from "./components/ProfileSettings";
 const KEYS = {
   PROFILE: "lilith_profile",
   CYCLE: "lilith_cycle",
+  CYCLE_HISTORY: "lilith_cycle_history",
   NOTES: "lilith_notes",
   CHANGES: "lilith_changes",
 };
@@ -71,6 +72,7 @@ export default function App() {
 
   const [notes, setNotesState] = useState(() => load(KEYS.NOTES, []));
   const [changes, setChangesState] = useState(() => load(KEYS.CHANGES, []));
+  const [cycleHistory, setCycleHistoryState] = useState(() => load(KEYS.CYCLE_HISTORY, []));
 
   // Navigation
   const [activeNav, setActiveNav] = useState("home");
@@ -81,6 +83,7 @@ export default function App() {
   useEffect(() => { save(KEYS.CYCLE, cycle); }, [cycle]);
   useEffect(() => { save(KEYS.NOTES, notes); }, [notes]);
   useEffect(() => { save(KEYS.CHANGES, changes); }, [changes]);
+  useEffect(() => { save(KEYS.CYCLE_HISTORY, cycleHistory); }, [cycleHistory]);
 
   // ── SETTERS ────────────────────────────────────────────────────────────────
   const setProfile = useCallback((p) => {
@@ -152,15 +155,35 @@ export default function App() {
         const newStart = data.fields?.startDate
           ? new Date(data.fields.startDate)
           : new Date();
+          
+        // Save current cycle to history if it exists and has meaningful data
+        if (cycle.startDate && cycle.cycleDay && cycle.cycleDay > 1) {
+          const cycleToSave = {
+            ...cycle,
+            endDate: newStart.toISOString(),
+            actualLength: cycle.cycleDay - 1, // Actual days in completed cycle
+            id: Date.now(),
+            archived: true
+          };
+          
+          setCycleHistoryState(prev => {
+            const newHistory = [...prev, cycleToSave];
+            save(KEYS.CYCLE_HISTORY, newHistory);
+            return newHistory;
+          });
+        }
+        
         setCycle({
           ...EMPTY_CYCLE,
           startDate: newStart.toISOString(),
           cycleLength: cycle.cycleLength || 28,
           cycleDay: 1,
           phase: "menstrual",
+          flow: data.fields?.flow || null, // Don't default to "normal"
         });
+        
         addChange({
-          text: `New cycle started. Flow: ${data.fields?.flow || "not specified"}`,
+          text: `New cycle started${data.fields?.flow ? `. Flow: ${data.fields.flow}` : ''}`,
           type: "cycle",
           badge: "New cycle",
         });
@@ -239,6 +262,7 @@ export default function App() {
     Object.values(KEYS).forEach(k => localStorage.removeItem(k));
     setProfileState(null);
     setCycleState(EMPTY_CYCLE);
+    setCycleHistoryState([]);
     setNotesState([]);
     setChangesState([]);
     setActiveNav("home");
@@ -251,13 +275,16 @@ export default function App() {
   // ── SHARED PROPS ───────────────────────────────────────────────────────────
   const sharedProps = {
     profile,
+    setProfile,
     cycle,
+    cycleHistory,
     notes,
     todayNotes,
     changes,
     addNote,
     addNotes,
     deleteNote,
+    addChange,
     activeNav,
     setActiveNav,
     onOpenSettings: () => setShowSettings(true),

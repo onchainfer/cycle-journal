@@ -23,3 +23,6 @@ yarn-debug.log*
 yarn-error.log*
 
 .env
+
+# 🔐 HACKATHON SECURITY: Ignore service file with hardcoded API key
+src/services/anthropic.js

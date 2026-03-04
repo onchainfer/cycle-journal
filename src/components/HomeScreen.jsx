@@ -452,6 +452,16 @@ body { background: var(--void); }
   z-index: 60;
 }
 
+/* Force navbar icon visibility */
+.navbar-icon {
+  color: var(--ink-ghost) !important;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .nav-item {
   display: flex;
   flex-direction: column;
@@ -469,6 +479,12 @@ body { background: var(--void); }
   line-height: 1;
   opacity: 0.4;
   transition: opacity 0.2s;
+  color: var(--ink-ghost);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-label {
@@ -480,8 +496,13 @@ body { background: var(--void); }
   transition: color 0.2s;
 }
 
-.nav-item.active .nav-icon { opacity: 1; }
-.nav-item.active .nav-label { color: var(--lav); }
+.nav-item.active .nav-icon { 
+  opacity: 1; 
+  color: var(--lav);
+}
+.nav-item.active .nav-label { 
+  color: var(--lav); 
+}
 
 /* ── MODAL: Add note expanded ── */
 .modal-overlay {
@@ -808,7 +829,7 @@ export default function HomeScreen({ profile, cycle, notes: allNotes, addNote, t
           ].map(item => (
             <button key={item.id} className={`nav-item ${activeNav === item.id ? "active" : ""}`}
               onClick={() => setActiveNav(item.id)}>
-              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-icon navbar-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
             </button>
           ))}

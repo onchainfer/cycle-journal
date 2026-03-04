@@ -207,9 +207,9 @@ body{background:var(--void);}
 /* Bottom nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--deep);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:12px 0 20px;z-index:60;}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px 16px;}
-.nav-icon{font-size:18px;line-height:1;opacity:0.4;}
+.nav-icon{font-size:18px;line-height:1;opacity:0.4;color:var(--ink-ghost);width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .nav-label{font-size:9px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-ghost);}
-.nav-item.active .nav-icon{opacity:1;}
+.nav-item.active .nav-icon{opacity:1;color:var(--lav);}
 .nav-item.active .nav-label{color:var(--lav);}
 `;
 

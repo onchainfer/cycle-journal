@@ -7,6 +7,32 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── PRINT STYLES FOR PDF GENERATION ── */
+@media print {
+  @page { 
+    margin: 0; 
+  } 
+  body { 
+    padding: 2cm; 
+    -webkit-print-color-adjust: exact; 
+  }
+  header, footer { 
+    display: none !important; 
+  }
+  /* Hide browser navigation and UI elements */
+  .bottom-nav,
+  .quick-note-bar,
+  .nav-item,
+  .modal-overlay {
+    display: none !important;
+  }
+  /* Ensure content flows properly for PDF */
+  .app {
+    max-width: none !important;
+    padding-bottom: 0 !important;
+  }
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

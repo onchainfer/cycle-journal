@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { sendMessageToLilith, simulateTyping } from "../services/anthropic.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');`;
 
@@ -124,6 +125,12 @@ body{background:var(--void);}
 .msg-time{font-size:9px;color:var(--ink-ghost);margin-top:5px;letter-spacing:0.05em;}
 .msg.lilith .msg-time{text-align:left;}
 .msg.user .msg-time{text-align:right;}
+.msg.system{justify-content:center;margin:8px 0;}
+.msg.system .msg-bubble{
+  background:var(--raised);border:1px solid rgba(196,176,232,0.2);
+  font-size:12px;color:var(--lav-dim);padding:8px 12px;
+  border-radius:12px;text-align:center;font-style:italic;
+}
 
 /* Typing */
 .typing-indicator{
@@ -262,8 +269,8 @@ body{background:var(--void);}
 }
 .quick-tag:hover{border-color:var(--border-hover);background:var(--lav-glow);}
 .quick-tag.active{border-color:var(--lav-dim);background:rgba(196,176,232,0.1);}
-.quick-tag-lilith{font-size:12px;color:var(--lav-dim);font-weight:500;letter-spacing:0.05em;border-color:rgba(196,176,232,0.2);}
-.quick-tag-lilith.active{border-color:var(--lav);color:var(--lav);background:rgba(196,176,232,0.1);}
+.quick-tag.quick-action{border-color:rgba(196,176,232,0.3);color:var(--lav-dim);}
+.quick-tag.quick-action:hover{background:var(--lav-glow);border-color:var(--lav-dim);color:var(--lav);}
 
 .input-row{
   display:flex;gap:8px;align-items:flex-end;
@@ -296,10 +303,77 @@ body{background:var(--void);}
   display:flex;justify-content:space-around;padding:12px 0 20px;z-index:60;
 }
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px 16px;}
-.nav-icon{font-size:18px;line-height:1;opacity:0.4;}
+.nav-icon{font-size:18px;line-height:1;opacity:0.4;color:var(--ink-ghost);width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .nav-label{font-size:9px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-ghost);}
-.nav-item.active .nav-icon{opacity:1;}
+.nav-item.active .nav-icon{opacity:1;color:var(--lav);}
 .nav-item.active .nav-label{color:var(--lav);}
+
+/* MODAL DIALOGS */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(10,8,16,0.8);
+  backdrop-filter:blur(4px);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.modal-sheet{
+  width:100%;max-width:480px;background:var(--surface);
+  border-top:1px solid var(--border);border-radius:2px 2px 0 0;
+  padding:24px;animation:slideUp 0.3s ease both;
+}
+.modal-handle{
+  width:32px;height:3px;background:var(--border);
+  border-radius:2px;margin:0 auto 20px;
+}
+.modal-title{
+  font-size:10px;font-weight:500;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--lav-dim);margin-bottom:16px;
+}
+.modal-actions{
+  display:flex;gap:12px;margin-top:24px;
+}
+.modal-btn{
+  flex:1;padding:14px;border:1px solid var(--border);
+  border-radius:2px;background:transparent;
+  font-family:'DM Sans',sans-serif;font-size:12px;
+  font-weight:500;letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;transition:all 0.2s;
+}
+.modal-btn.secondary{
+  color:var(--ink-ghost);
+}
+.modal-btn.secondary:hover{
+  border-color:var(--border-hover);color:var(--ink-soft);
+}
+.modal-btn.primary{
+  border-color:rgba(196,176,232,0.3);color:var(--lav);
+}
+.modal-btn.primary:hover:not(:disabled){
+  background:var(--lav-glow);border-color:var(--lav-dim);
+}
+.modal-btn:disabled{
+  opacity:0.3;cursor:not-allowed;
+}
+
+/* FLOW OPTIONS */
+.flow-options{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  margin:16px 0;
+}
+.flow-option-btn{
+  padding:12px 16px;border:2px solid transparent;
+  border-radius:6px;background:transparent;
+  font-family:'DM Sans',sans-serif;font-size:14px;
+  font-weight:500;cursor:pointer;transition:all 0.2s;
+  text-transform:capitalize;
+}
+.flow-option-btn:hover{
+  background:rgba(255,255,255,0.05);
+  transform:translateY(-1px);
+}
+
+@keyframes slideUp {
+  from { transform:translateY(100%); opacity:0; }
+  to { transform:translateY(0); opacity:1; }
+}
 `;
 
 // ── TRIGGER DETECTION ─────────────────────────────────────────────────────────
@@ -487,7 +561,10 @@ const TRIGGERS = [
             { key: "dose", label: "Dose", placeholder: "e.g. 50mg" },
             { key: "reason", label: "What it's for (optional)", placeholder: "e.g. PMDD, anxiety..." },
         ],
-        lilithResponse: (fields) => `Noted. Psychiatric medications interact with the cycle — especially because hormones affect how the body metabolizes them. You might notice that in certain cycle phases ${fields.name || "el medicamento"} feels more or less effective. Let me know if you notice that. I'll monitor it in your history.`,
+        lilithResponse: (fields) => {
+            const medName = fields.name || "the medication";
+            return `I've noted that you started ${medName}${fields.dose ? ` at ${fields.dose}` : ''}. I'll track how this affects your cycle patterns — medications can interact differently with hormonal fluctuations, so timing and dosage matter. How are you feeling about this change?`;
+        },
     },
     {
         id: "dose-change",
@@ -600,10 +677,9 @@ function detectTrigger(text) {
 // based on real profile data — see INITIAL_MESSAGES below component definition
 
 const QUICK_TAGS = [
-    { id: "food", emoji: "🍽" },
-    { id: "meds", emoji: "💊" },
-    { id: "movement", emoji: "🏃" },
-    { id: "sick", emoji: "😷" },
+    { id: "period", emoji: "🔴", action: "period" },
+    { id: "meds", emoji: "💊", action: "medication" },
+    { id: "journal", emoji: "⊙", action: "journal" },
 ];
 
 const QUICK_PROMPTS = [
@@ -686,8 +762,8 @@ function TriggerCard({ trigger, onConfirm, onDismiss }) {
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function LilithChatWithTriggers({
-    activeNav, setActiveNav, onCycleEvent,
-    profile = {}, cycle = {}, todayNotes = [],
+    activeNav, setActiveNav, onCycleEvent, addNote, addChange, setProfile,
+    profile = {}, cycle = {}, todayNotes = [], notes = [],
 }) {
     const getInitialMessage = () => {
         const name = profile.name ? `, ${profile.name}` : "";
@@ -704,11 +780,42 @@ export default function LilithChatWithTriggers({
         };
     };
 
-    const [messages, setMessages] = useState(() => [getInitialMessage()]);
+    const [messages, setMessages] = useState(() => {
+        try {
+            const stored = localStorage.getItem('lilith_chat_history');
+            if (stored) {
+                const parsedMessages = JSON.parse(stored);
+                // If we have stored messages, use them; otherwise use initial message
+                return parsedMessages.length > 0 ? parsedMessages : [getInitialMessage()];
+            }
+            return [getInitialMessage()];
+        } catch (e) {
+            console.warn('Failed to load chat history from localStorage:', e);
+            return [getInitialMessage()];
+        }
+    });
     const [input, setInput] = useState("");
     const [activeTags, setActiveTags] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
     const [pendingTrigger, setPendingTrigger] = useState(null);
+    const [showActionDialog, setShowActionDialog] = useState(null);
+    const [journalText, setJournalText] = useState("");
+    const [medicationForm, setMedicationForm] = useState({
+        action: '', // 'add', 'change', 'stop'
+        name: '',
+        dose: '',
+        reason: ''
+    });
+    const [showFlowDialog, setShowFlowDialog] = useState(false);
+
+    // Persist chat messages to localStorage whenever they change
+    useEffect(() => {
+        try {
+            localStorage.setItem('lilith_chat_history', JSON.stringify(messages));
+        } catch (e) {
+            console.warn('Failed to save chat history to localStorage:', e);
+        }
+    }, [messages]);
     const messagesEndRef = useRef(null);
     const textareaRef = useRef(null);
 
@@ -716,106 +823,527 @@ export default function LilithChatWithTriggers({
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping, pendingTrigger]);
 
-    const toggleTag = (id) =>
+    const toggleTag = (id) => {
+        // Handle action-based quick tags
+        const tag = QUICK_TAGS.find(t => t.id === id);
+        if (tag && tag.action) {
+            handleQuickAction(tag.action);
+            return;
+        }
+
+        // Handle regular tags
         setActiveTags(t => t.includes(id) ? t.filter(x => x !== id) : [...t, id]);
+    };
+
+    const handleQuickAction = (action) => {
+        switch (action) {
+            case 'period':
+                setShowActionDialog('period');
+                break;
+            case 'journal':
+                setShowActionDialog('journal');
+                break;
+            case 'medication':
+                setShowActionDialog('medication');
+                break;
+            default:
+                break;
+        }
+    };
+
+    // Handle confirmed actions with safe date handling and immediate Lilith feedback
+    const handleConfirmAction = (action) => {
+        const now = new Date();
+
+        // Validate date before proceeding
+        if (isNaN(now.getTime())) {
+            console.error('Invalid date created');
+            return;
+        }
+
+        switch (action) {
+            case 'period':
+                // Don't auto-reset yet - ask about flow first
+                setShowFlowDialog(true);
+                break;
+
+            case 'journal':
+                if (journalText.trim() && addNote) {
+                    const safeDate = new Date();
+                    if (!isNaN(safeDate.getTime())) {
+                        const noteText = journalText.trim();
+                        addNote({
+                            text: noteText,
+                            date: safeDate.toISOString().split('T')[0], // Safe date conversion
+                            time: getTime(),
+                            tags: []
+                        });
+
+                        // Add confirmation message to chat
+                        addMessage({
+                            id: Date.now(),
+                            role: 'system',
+                            text: `Journal entry added: "${noteText}"`,
+                            time: getTime(),
+                            isSystemMessage: true
+                        });
+
+                        // Immediate Lilith feedback about the journal entry
+                        setTimeout(() => {
+                            const feedback = generateJournalFeedback(noteText, cycle);
+                            addMessage({
+                                id: Date.now() + 1,
+                                role: 'lilith',
+                                text: feedback,
+                                time: getTime()
+                            });
+                        }, 1200);
+                    }
+                }
+                setJournalText('');
+                break;
+
+            case 'medication':
+                if (medicationForm.action && medicationForm.name && addChange && setProfile) {
+                    const currentDate = new Date().toISOString();
+                    const todayDateString = currentDate.split('T')[0];
+
+                    // Update the global profile medications properly
+                    setProfile(prevProfile => {
+                        let updatedMedications = [...(prevProfile.medications || [])];
+
+                        if (medicationForm.action === 'add') {
+                            // Add new medication
+                            updatedMedications.push({
+                                name: medicationForm.name,
+                                dose: medicationForm.dose,
+                                status: 'active',
+                                startDate: todayDateString,
+                                reason: medicationForm.reason
+                            });
+                        }
+                        else if (medicationForm.action === 'change') {
+                            // Mark current medication as inactive and add new version
+                            updatedMedications = updatedMedications.map(med => {
+                                if ((typeof med === 'string' ? med : med.name) === medicationForm.name &&
+                                    (!med.status || med.status === 'active')) {
+                                    return typeof med === 'string'
+                                        ? { name: med, status: 'inactive', endDate: todayDateString }
+                                        : { ...med, status: 'inactive', endDate: todayDateString };
+                                }
+                                return med;
+                            });
+
+                            // Add new version with updated dose
+                            updatedMedications.push({
+                                name: medicationForm.name,
+                                dose: medicationForm.dose,
+                                status: 'active',
+                                startDate: todayDateString,
+                                reason: `Dose change: ${medicationForm.reason || 'not specified'}`,
+                                previousDose: true
+                            });
+                        }
+                        else if (medicationForm.action === 'stop') {
+                            // Mark as inactive
+                            updatedMedications = updatedMedications.map(med => {
+                                if ((typeof med === 'string' ? med : med.name) === medicationForm.name &&
+                                    (!med.status || med.status === 'active')) {
+                                    return typeof med === 'string'
+                                        ? { name: med, status: 'inactive', endDate: todayDateString }
+                                        : { ...med, status: 'inactive', endDate: todayDateString, reason: medicationForm.reason };
+                                }
+                                return med;
+                            });
+                        }
+
+                        return { ...prevProfile, medications: updatedMedications };
+                    });
+
+                    const actionText = {
+                        'add': `Started taking ${medicationForm.name}${medicationForm.dose ? ` (${medicationForm.dose})` : ''}`,
+                        'change': `Changed dose of ${medicationForm.name}${medicationForm.dose ? ` to ${medicationForm.dose}` : ''}`,
+                        'stop': `Stopped taking ${medicationForm.name}`
+                    };
+
+                    // Add to changes log
+                    addChange({
+                        text: `${actionText[medicationForm.action]}${medicationForm.reason ? `. Reason: ${medicationForm.reason}` : ''}`,
+                        type: 'medication',
+                        badge: medicationForm.action === 'add' ? 'Started' :
+                            medicationForm.action === 'change' ? 'Dose change' : 'Discontinued',
+                        medication: {
+                            name: medicationForm.name,
+                            dose: medicationForm.dose,
+                            action: medicationForm.action,
+                            reason: medicationForm.reason,
+                            date: currentDate,
+                            status: medicationForm.action === 'stop' ? 'inactive' : 'active'
+                        }
+                    });
+
+                    // Add confirmation message to chat
+                    addMessage({
+                        id: Date.now(),
+                        role: 'system',
+                        text: `💊 Medication logged: ${actionText[medicationForm.action]}`,
+                        time: getTime(),
+                        isSystemMessage: true
+                    });
+
+                    // Specific Lilith confirmation
+                    setTimeout(() => {
+                        const specificFeedback = `I've updated your ${medicationForm.name}${medicationForm.dose ? ` to ${medicationForm.dose}` : ''} in your records. ${cycle?.cycleDay ? `Since you're on day ${cycle.cycleDay}${cycle?.phase ? ` (${cycle.phase} phase)` : ''}, ` : ''
+                            }I'll watch for any changes in your energy or mood over the next few days.`;
+
+                        addMessage({
+                            id: Date.now() + 1,
+                            role: 'lilith',
+                            text: specificFeedback,
+                            time: getTime()
+                        });
+                    }, 1200);
+                }
+                setMedicationForm({ action: '', name: '', dose: '', reason: '' });
+                break;
+
+            default:
+                console.log('Unknown action:', action);
+                break;
+        }
+
+        setShowActionDialog(null);
+    };
+
+    // Handle period flow confirmation
+    const handleFlowConfirmation = (flow) => {
+        const now = new Date();
+
+        // Validate date before proceeding
+        if (isNaN(now.getTime())) {
+            console.error('Invalid date created');
+            return;
+        }
+
+        // Reset cycle to day 1 with flow information
+        if (onCycleEvent) {
+            onCycleEvent('RESET_CYCLE', {
+                fields: {
+                    startDate: now.toISOString(),
+                    flow: flow
+                }
+            });
+        }
+
+        // Add system message to chat
+        addMessage({
+            id: Date.now(),
+            role: 'system',
+            text: `Period started (${flow} flow) - Cycle reset to Day 1`,
+            time: getTime(),
+            isSystemMessage: true
+        });
+
+        // Contextual Lilith response based on flow
+        setTimeout(() => {
+            const flowResponses = {
+                'light': "Period logged with light flow. I've reset your cycle to Day 1. Light periods can be normal, especially if you're stressed or your hormones are shifting. How are you feeling today?",
+                'normal': "Period logged with normal flow. I've reset your cycle to Day 1. Sending you strength for today — remember that rest is productive right now, and iron-rich foods can help with energy.",
+                'heavy': "Period logged with heavy flow. I've reset your cycle to Day 1. Heavy periods can be draining — stay hydrated, consider iron supplements, and don't push yourself today. Are you experiencing any intense cramping?",
+                'spotting': "Spotting logged. I've reset your cycle to Day 1, though spotting can sometimes be breakthrough bleeding. Let's see how this develops over the next couple of days."
+            };
+
+            addMessage({
+                id: Date.now() + 1,
+                role: 'lilith',
+                text: flowResponses[flow] || flowResponses['normal'],
+                time: getTime()
+            });
+        }, 1200);
+
+        setShowFlowDialog(false);
+    };
+
+    // Generate contextual feedback for journal entries
+    const generateJournalFeedback = (noteText, currentCycle) => {
+        const text = noteText.toLowerCase();
+        const cycleDay = currentCycle?.cycleDay || null;
+        const phase = currentCycle?.phase || null;
+
+        // Context-aware responses based on cycle phase
+        const phaseContext = {
+            'menstrual': "during your menstrual phase",
+            'follicular': "in your follicular phase",
+            'ovulation': "around ovulation",
+            'luteal': "in your luteal phase"
+        };
+
+        const cycleInfo = cycleDay ? ` You're on day ${cycleDay}${phase ? ` ${phaseContext[phase]}` : ''}` : '';
+
+        // Analyze content for intelligent feedback
+        if (text.includes('pain') || text.includes('cramp') || text.includes('hurt')) {
+            return `I see you're noting pain.${cycleInfo} — this timing gives context to what you're experiencing. Heat, gentle movement, and magnesium can help. How severe is it on a scale of 1-10?`;
+        }
+
+        if (text.includes('tired') || text.includes('exhaust') || text.includes('energy')) {
+            return `Energy noted.${cycleInfo} — your hormones directly affect energy levels right now. This pattern is valuable data. Are you sleeping well?`;
+        }
+
+        if (text.includes('mood') || text.includes('anxious') || text.includes('sad') || text.includes('angry')) {
+            return `Emotional state logged.${cycleInfo} — your feelings have biochemical roots in this cycle phase. What you're experiencing is real and trackable. How can I support you today?`;
+        }
+
+        if (text.includes('food') || text.includes('craving') || text.includes('eat')) {
+            return `Food patterns noted.${cycleInfo} — cravings and appetite changes are hormonal signals. Your body is telling you something. What are you drawn to eating?`;
+        }
+
+        // General positive acknowledgment
+        return `Thanks for tracking this.${cycleInfo} — every note helps me understand your patterns better. I'm building a clearer picture of how your cycle affects you.`;
+    };
+
+    // Generate contextual feedback for medication changes
+    const generateMedicationFeedback = (medForm, currentCycle) => {
+        const { action, name, dose } = medForm;
+        const cycleDay = currentCycle?.cycleDay || null;
+        const phase = currentCycle?.phase || null;
+
+        const phaseInfo = phase ? ` You're currently in your ${phase} phase` : '';
+        const dayInfo = cycleDay ? ` (day ${cycleDay})` : '';
+
+        const feedback = {
+            'add': `I've updated your medication history: started ${name}${dose ? ` (${dose})` : ''}.${phaseInfo}${dayInfo} — I'll monitor how this affects your cycle patterns. Every person responds differently to medications, especially with hormonal fluctuations.`,
+            'change': `Dose change logged: ${name}${dose ? ` now ${dose}` : ''}.${phaseInfo}${dayInfo} — dose adjustments can take time to show effects, especially with cycle hormones in play. I'll monitor how you feel over the coming weeks.`,
+            'stop': `Noted that you stopped ${name}.${phaseInfo}${dayInfo} — discontinuing medications can temporarily amplify cycle symptoms, particularly in the luteal phase. Please let me know how you're adjusting.`
+        };
+
+        return feedback[action] || `Medication change logged.${phaseInfo}${dayInfo} — I'll track how this affects your cycle patterns.`;
+    };
+
+    // Add proactive questions for early period days
+    const addProactiveQuestions = (response, currentCycle) => {
+        const cycleDay = currentCycle?.cycleDay || null;
+        const phase = currentCycle?.phase || null;
+
+        // Only add questions on days 1-3 of menstrual phase
+        if (phase === 'menstrual' && cycleDay && cycleDay >= 1 && cycleDay <= 3) {
+            const proactiveQuestions = [
+                "By the way, are you seeing any clots today?",
+                "How's the pain level — is it more sharp or dull?",
+                "Are you experiencing any nausea or digestive issues?",
+                "How's your energy compared to yesterday?"
+            ];
+
+            // Randomly select one question to avoid repetition
+            const randomQuestion = proactiveQuestions[Math.floor(Math.random() * proactiveQuestions.length)];
+
+            return `${response}\n\n${randomQuestion}`;
+        }
+
+        return response;
+    };
+
+    // Parse AI response for intent JSON and clean the response completely
+    const parseAIIntents = (response) => {
+        try {
+            // Multiple patterns to catch all possible JSON formats
+            const jsonPatterns = [
+                /\{[\s\S]*?"intent"[\s\S]*?\}/g,  // Basic intent JSON
+                /\{[^{}]*"intent"[^{}]*\}/g,      // Single line JSON
+                /```json\s*\{[\s\S]*?\}\s*```/g,  // Code block JSON
+                /`\{[\s\S]*?\}`/g                 // Inline code JSON
+            ];
+
+            let cleanResponse = response;
+            let detectedIntent = null;
+
+            // Try each pattern to find and remove JSON
+            for (const pattern of jsonPatterns) {
+                const matches = cleanResponse.match(pattern);
+                if (matches) {
+                    for (const match of matches) {
+                        try {
+                            // Extract just the JSON part (remove markdown if present)
+                            let jsonText = match.replace(/```json\s*|\s*```|`/g, '');
+                            const intentData = JSON.parse(jsonText);
+
+                            if (intentData.intent) {
+                                detectedIntent = intentData;
+                            }
+
+                            // Remove the entire match from response
+                            cleanResponse = cleanResponse.replace(match, '');
+                        } catch (parseError) {
+                            // If JSON parsing fails, still remove the match
+                            cleanResponse = cleanResponse.replace(match, '');
+                            console.log('Removed unparseable JSON-like content:', match.substring(0, 50));
+                        }
+                    }
+                }
+            }
+
+            // Comprehensive cleanup of whitespace and artifacts
+            cleanResponse = cleanResponse
+                .replace(/\n\s*\n\s*\n+/g, '\n\n') // Remove triple+ newlines
+                .replace(/^\s+|\s+$/g, '') // Trim start and end
+                .replace(/\n\s+/g, '\n') // Remove leading spaces on lines
+                .replace(/\s{2,}/g, ' ') // Replace multiple spaces with single space
+                .replace(/\n+/g, '\n') // Normalize line breaks
+                .trim();
+
+            // Return cleaned response
+            return {
+                intent: detectedIntent,
+                cleanResponse: cleanResponse || response.replace(/\{[\s\S]*?\}/g, '').trim()
+            };
+
+        } catch (e) {
+            console.log('Error parsing AI intents:', e);
+            // Fallback: just remove any JSON-like patterns
+            const fallbackClean = response.replace(/\{[\s\S]*?\}/g, '').trim();
+            return { intent: null, cleanResponse: fallbackClean || response };
+        }
+    };
+
+    // Handle AI-detected intents automatically
+    const handleAIIntent = (intent) => {
+        if (!intent || intent.confidence < 0.7) return;
+
+        switch (intent.intent) {
+            case 'PERIOD_START':
+                if (onCycleEvent && intent.confidence > 0.8) {
+                    const safeDate = new Date();
+                    if (!isNaN(safeDate.getTime())) {
+                        onCycleEvent('RESET_CYCLE', {
+                            fields: {
+                                startDate: safeDate.toISOString(),
+                                flow: 'normal'
+                            }
+                        });
+
+                        // Add system message and Lilith response
+                        setTimeout(() => {
+                            addMessage({
+                                id: Date.now(),
+                                role: 'system',
+                                text: `✨ Automatically detected: Period started - Cycle reset to Day 1`,
+                                time: getTime(),
+                                isSystemMessage: true
+                            });
+                        }, 1000);
+
+                        // Contextual Lilith response with proactive questions
+                        setTimeout(() => {
+                            let response = "I detected that your period started and automatically reset your cycle to Day 1. Sending you strength for today — your body is doing important work right now. Rest is productive, and iron-rich foods can help maintain your energy.";
+                            response = addProactiveQuestions(response, { cycleDay: 1, phase: 'menstrual' });
+
+                            addMessage({
+                                id: Date.now() + 1,
+                                role: 'lilith',
+                                text: response,
+                                time: getTime()
+                            });
+                        }, 2000);
+                    }
+                }
+                break;
+
+            case 'MEDICATION_CHANGE':
+                // Log medication change
+                console.log('AI detected medication change:', intent);
+                setTimeout(() => {
+                    addMessage({
+                        id: Date.now(),
+                        role: 'system',
+                        text: `📝 Medication change noted: ${intent.medication || 'medication'} - ${intent.change || 'change'}`,
+                        time: getTime(),
+                        isSystemMessage: true
+                    });
+                }, 1000);
+
+                // Contextual Lilith response about medication
+                setTimeout(() => {
+                    const medResponse = `I noted your medication change: ${intent.medication || 'medication'}. ${cycle?.cycleDay ? `Since you're on day ${cycle.cycleDay}${cycle?.phase ? ` (${cycle.phase} phase)` : ''}, ` : ''
+                        }I'll monitor how this affects your cycle patterns. Medication changes can take time to stabilize, especially with hormonal fluctuations.`;
+
+                    addMessage({
+                        id: Date.now() + 1,
+                        role: 'lilith',
+                        text: medResponse,
+                        time: getTime()
+                    });
+                }, 2200);
+                break;
+
+            case 'SYMPTOM_LOG':
+                console.log('AI detected symptoms:', intent.symptoms);
+                break;
+
+            default:
+                break;
+        }
+    };
 
     const addMessage = (msg) => setMessages(m => [...m, msg]);
 
-    // ── CLAUDE API ────────────────────────────────────────────────────────────
+    // ── LILITH API INTEGRATION ─────────────────────────────────────────────────
     const callLilith = async (userText, tags, history) => {
-        const apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
-        if (!apiKey) {
-            return "I can't connect right now — API key is missing. Add REACT_APP_ANTHROPIC_API_KEY to your .env file.";
-        }
+        try {
+            // Prepare user profile data for API call
+            const userProfile = {
+                ...profile,
+                ...cycle,
+                tags: tags.length > 0 ? tags : undefined
+            };
 
-        // Safely serialize profile fields — onboarding may store objects
-        const safeStr = (val) => {
-            if (!val) return null;
-            if (typeof val === "string") return val;
-            if (Array.isArray(val)) return val.map(v => typeof v === "string" ? v : v.name || v.label || JSON.stringify(v)).join(", ");
-            if (typeof val === "object") return val.name || val.label || Object.values(val).join(", ");
-            return String(val);
-        };
-
-        const { name, age, contraception, goals } = profile;
-        const conditions = safeStr(profile.conditions);
-        const medications = safeStr(profile.medications);
-        const { cycleDay, cycleLength, phase } = cycle;
-
-        const notesContext = todayNotes.length > 0
-            ? todayNotes.map(n => `- ${n.time || "earlier"}: ${n.text}${n.tags?.length ? ` [${n.tags.join(", ")}]` : ""}`).join("\n")
-            : "No notes logged yet today.";
-
-        const systemPrompt = `You are Lilith, a cycle coach and trusted confidante.
-
-Your personality: warm, direct, real — like a best friend who happens to be a gynecologist. Never preachy. Never adds unnecessary disclaimers. Validates first, informs second. Speaks like a person, not a medical pamphlet.
-
-${name ? `User's name: ${name}.` : ""}
-${age ? `Age: ${age}.` : ""}
-${conditions?.length ? `Reported conditions: ${Array.isArray(conditions) ? conditions.join(", ") : conditions}.` : ""}
-${medications ? `Current medications: ${medications}.` : ""}
-${contraception ? `Contraception: ${contraception}.` : ""}
-${cycleLength ? `Typical cycle length: ${cycleLength} days.` : ""}
-${goals ? `Their tracking goal: ${goals}.` : ""}
-
-CURRENT CYCLE:
-${cycleDay ? `- Day ${cycleDay} of ${cycleLength || 28}` : "- Cycle day unknown"}
-${phase ? `- Phase: ${phase}` : ""}
-
-TODAY'S NOTES:
-${notesContext}
-
-${tags.length > 0 ? `This message is tagged: ${tags.join(", ")}.` : ""}
-
-RESPONSE RULES:
-- Detect the user's language from their message and respond in the same language
-- Keep responses to 3-4 sentences max unless genuinely needed
-- Reference cycle day and phase when relevant — this is your superpower
-- If something sounds medically serious, suggest a doctor once, gently
-- Never say "I'm just an AI"`;
-
-        // Build conversation history for Claude
-        const apiMessages = history
-            .filter(m => m.role === "user" || m.role === "lilith")
-            .slice(-10) // last 10 messages for context
-            .map(m => ({
-                role: m.role === "lilith" ? "assistant" : "user",
-                content: m.text,
+            // Prepare daily logs (recent notes)
+            const dailyLogs = notes.slice(-7).map(note => ({
+                cycleDay: cycle.cycleDay,
+                notes: note.text,
+                symptoms: note.tags,
+                date: note.date,
+                time: note.time
             }));
 
-        // Add current message
-        apiMessages.push({ role: "user", content: userText });
+            // Prepare intent callbacks for smart cycle tracking
+            const intentCallbacks = {
+                updateCycleStart: (newDate) => {
+                    // Safe date validation before using
+                    const safeDate = new Date(newDate);
+                    if (isNaN(safeDate.getTime())) {
+                        console.error('Invalid date passed to updateCycleStart, using current time');
+                        safeDate.setTime(Date.now());
+                    }
 
-        try {
-            const res = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-api-key": apiKey,
-                    "anthropic-version": "2023-06-01",
-                    "anthropic-dangerous-direct-browser-access": "true",
+                    // Use the existing cycle event system to update the cycle
+                    if (onCycleEvent) {
+                        onCycleEvent('RESET_CYCLE', {
+                            fields: {
+                                startDate: safeDate.toISOString(),
+                                flow: 'normal' // default
+                            }
+                        });
+                    }
                 },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-6",
-                    max_tokens: 1024,
-                    system: systemPrompt,
-                    messages: apiMessages,
-                }),
-            });
+                updateProfile: (updates) => {
+                    // This could be expanded to update medication profile
+                    console.log('Profile update triggered:', updates);
+                }
+            };
 
-            const data = await res.json();
+            // Call our Anthropic service with intent detection
+            const response = await sendMessageToLilith(
+                userText,
+                history,
+                userProfile,
+                dailyLogs,
+                'chat',
+                intentCallbacks
+            );
 
-            if (data.content?.[0]?.text) {
-                return data.content[0].text;
-            }
-            if (data.error) {
-                console.error("Lilith API error:", data.error);
-                return "Something went wrong on my end. Try again in a second.";
-            }
-            return "I didn't catch that. Can you say it again?";
+            return response;
 
-        } catch (err) {
-            console.error("Lilith fetch error:", err);
+        } catch (error) {
+            console.error("Error calling Lilith:", error);
             return "I'm having trouble connecting right now. Check your internet and try again.";
         }
     };
@@ -842,16 +1370,47 @@ RESPONSE RULES:
             return;
         }
 
-        // Call real Claude API
+        // Call real Anthropic API with typing effect
         setIsTyping(true);
+
         const currentMessages = [...messages, userMsg];
         const response = await callLilith(text.trim(), activeTags, currentMessages);
-        setIsTyping(false);
-        addMessage({
-            id: Date.now() + 1, role: "lilith",
-            text: response,
+
+        // Parse JSON intents from AI response
+        const parsedResponse = parseAIIntents(response);
+        if (parsedResponse.intent) {
+            handleAIIntent(parsedResponse.intent);
+        }
+
+        // Create message with typing effect
+        const lilithMsgId = Date.now() + 1;
+        const lilithMsg = {
+            id: lilithMsgId,
+            role: "lilith",
+            text: "", // Start empty for typing effect
             time: getTime(),
-        });
+        };
+
+        // Add empty message first
+        addMessage(lilithMsg);
+        setIsTyping(false);
+
+        // Use cleaned response and add proactive questions for early period days
+        let displayResponse = parsedResponse.cleanResponse || response;
+        displayResponse = addProactiveQuestions(displayResponse, cycle);
+
+        // Simulate typing effect
+        await simulateTyping(
+            (partialText) => {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === lilithMsgId
+                        ? { ...msg, text: partialText }
+                        : msg
+                ));
+            },
+            displayResponse,
+            25 // 25ms delay between characters
+        );
     };
 
     const handleTriggerConfirm = (fields) => {
@@ -860,10 +1419,17 @@ RESPONSE RULES:
 
         // 🌍 Global event → propagate to App.js so ALL screens update
         if (trigger.isGlobalEvent && onCycleEvent) {
+            // Safe date handling to prevent "Invalid time value" error
+            const safeDate = new Date();
+            if (isNaN(safeDate.getTime())) {
+                console.error('Invalid date in handleTriggerConfirm, using fallback');
+                safeDate.setTime(Date.now());
+            }
+
             onCycleEvent(trigger.action, {
                 triggerId: trigger.id,
                 fields,
-                date: new Date().toISOString(),
+                date: safeDate.toISOString(),
             });
         }
 
@@ -952,18 +1518,21 @@ RESPONSE RULES:
                     </div>
 
                     {messages.map((msg, i) => (
-                        <div key={msg.id} className={`msg ${msg.role}`}>
+                        <div key={msg.id} className={`msg ${msg.isSystemMessage ? 'system' : msg.role}`}>
                             <div className="msg-bubble">
-                                {msg.role === "lilith" && (
+                                {msg.role === "lilith" && !msg.isSystemMessage && (
                                     <div className="lilith-msg-header">
                                         <div className="lilith-msg-dot" />
                                         <span className="lilith-msg-name">Lilith</span>
                                     </div>
                                 )}
-                                {msg.role === "lilith"
-                                    ? <p className="lilith-msg-text">{msg.text}</p>
-                                    : <p style={{ fontFamily: "'Crimson Pro',serif", fontSize: 17, fontWeight: 300, lineHeight: 1.6 }}>{msg.text}</p>
-                                }
+                                {msg.isSystemMessage ? (
+                                    <p>{msg.text}</p>
+                                ) : msg.role === "lilith" ? (
+                                    <p className="lilith-msg-text">{msg.text}</p>
+                                ) : (
+                                    <p style={{ fontFamily: "'Crimson Pro',serif", fontSize: 17, fontWeight: 300, lineHeight: 1.6 }}>{msg.text}</p>
+                                )}
                                 {msg.tags && msg.tags.length > 0 && (
                                     <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
                                         {msg.tags.map(t => {
@@ -1001,7 +1570,7 @@ RESPONSE RULES:
                         </div>
                     )}
 
-                    {messages.length < 6 && !pendingTrigger && (
+                    {messages.length <= 1 && !pendingTrigger && (
                         <div className="quick-prompts">
                             {QUICK_PROMPTS.map(p => (
                                 <button key={p} className="quick-prompt" onClick={() => sendMessage(p)}>{p}</button>
@@ -1017,16 +1586,17 @@ RESPONSE RULES:
                     <div className="quick-tags">
                         {QUICK_TAGS.map(tag => (
                             <button key={tag.id}
-                                className={`quick-tag ${activeTags.includes(tag.id) ? "active" : ""}`}
-                                onClick={() => toggleTag(tag.id)}>
+                                className={`quick-tag ${tag.action ? 'quick-action' : (activeTags.includes(tag.id) ? "active" : "")}`}
+                                onClick={() => toggleTag(tag.id)}
+                                title={tag.action ?
+                                    tag.action === 'period' ? 'Log period start' :
+                                        tag.action === 'journal' ? 'Quick journal entry' :
+                                            tag.action === 'medication' ? 'Medication management' : ''
+                                    : ''}
+                            >
                                 {tag.emoji}
                             </button>
                         ))}
-                        <button
-                            className={`quick-tag quick-tag-lilith ${activeTags.includes("lilith") ? "active" : ""}`}
-                            onClick={() => toggleTag("lilith")}>
-                            ✦
-                        </button>
                     </div>
                     <div className="input-row">
                         <textarea
@@ -1041,6 +1611,216 @@ RESPONSE RULES:
                         <button className="send-btn" onClick={() => sendMessage()} disabled={!input.trim()}>↑</button>
                     </div>
                 </div>
+
+                {/* ACTION CONFIRMATION DIALOGS */}
+                {showActionDialog === 'period' && (
+                    <div className="modal-overlay" onClick={() => setShowActionDialog(null)}>
+                        <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+                            <div className="modal-handle" />
+                            <div className="modal-title">Period Tracking</div>
+                            <div style={{ padding: "20px 0", textAlign: "center" }}>
+                                <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔴</div>
+                                <p style={{ fontSize: "18px", color: "var(--ink)", marginBottom: "8px", fontFamily: "'Crimson Pro', serif" }}>
+                                    Did your period start today?
+                                </p>
+                                <p style={{ fontSize: "14px", color: "var(--ink-ghost)", fontStyle: "italic" }}>
+                                    This will reset your cycle to Day 1
+                                </p>
+                            </div>
+                            <div className="modal-actions">
+                                <button className="modal-btn secondary" onClick={() => setShowActionDialog(null)}>
+                                    Cancel
+                                </button>
+                                <button className="modal-btn primary" onClick={() => handleConfirmAction('period')}>
+                                    Yes, it started
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showActionDialog === 'journal' && (
+                    <div className="modal-overlay" onClick={() => setShowActionDialog(null)}>
+                        <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+                            <div className="modal-handle" />
+                            <div className="modal-title">Quick Journal Entry</div>
+                            <div style={{ padding: "20px 0" }}>
+                                <textarea
+                                    value={journalText}
+                                    onChange={e => setJournalText(e.target.value)}
+                                    placeholder="What are you noticing right now..."
+                                    style={{
+                                        width: "100%",
+                                        minHeight: "100px",
+                                        background: "transparent",
+                                        border: "1px solid var(--border)",
+                                        borderRadius: "2px",
+                                        padding: "12px",
+                                        color: "var(--ink)",
+                                        fontSize: "16px",
+                                        fontFamily: "'Crimson Pro', serif",
+                                        resize: "none",
+                                        outline: "none"
+                                    }}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="modal-actions">
+                                <button className="modal-btn secondary" onClick={() => setShowActionDialog(null)}>
+                                    Cancel
+                                </button>
+                                <button
+                                    className="modal-btn primary"
+                                    onClick={() => handleConfirmAction('journal')}
+                                    disabled={!journalText.trim()}
+                                >
+                                    Add Entry
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showActionDialog === 'medication' && (
+                    <div className="modal-overlay" onClick={() => setShowActionDialog(null)}>
+                        <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+                            <div className="modal-handle" />
+                            <div className="modal-title">Medication Management</div>
+                            <div style={{ padding: "20px 0" }}>
+                                <div style={{ marginBottom: "16px" }}>
+                                    <label style={{ fontSize: "12px", color: "var(--ink-ghost)", marginBottom: "8px", display: "block" }}>
+                                        What would you like to do?
+                                    </label>
+                                    <select
+                                        value={medicationForm.action}
+                                        onChange={e => setMedicationForm(prev => ({ ...prev, action: e.target.value }))}
+                                        style={{
+                                            width: "100%", padding: "8px 12px", background: "var(--surface)",
+                                            border: "1px solid var(--border)", borderRadius: "2px",
+                                            color: "var(--ink)", fontSize: "14px"
+                                        }}
+                                    >
+                                        <option value="">Select action...</option>
+                                        <option value="add">Add new medication</option>
+                                        <option value="change">Change dose</option>
+                                        <option value="stop">Stop taking medication</option>
+                                    </select>
+                                </div>
+
+                                {medicationForm.action && (
+                                    <>
+                                        <div style={{ marginBottom: "12px" }}>
+                                            <label style={{ fontSize: "12px", color: "var(--ink-ghost)", marginBottom: "8px", display: "block" }}>
+                                                Medication name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={medicationForm.name}
+                                                onChange={e => setMedicationForm(prev => ({ ...prev, name: e.target.value }))}
+                                                placeholder="e.g. Sertraline, Birth Control..."
+                                                style={{
+                                                    width: "100%", padding: "8px 12px", background: "transparent",
+                                                    border: "1px solid var(--border)", borderRadius: "2px",
+                                                    color: "var(--ink)", fontSize: "14px"
+                                                }}
+                                            />
+                                        </div>
+
+                                        {(medicationForm.action === 'add' || medicationForm.action === 'change') && (
+                                            <div style={{ marginBottom: "12px" }}>
+                                                <label style={{ fontSize: "12px", color: "var(--ink-ghost)", marginBottom: "8px", display: "block" }}>
+                                                    Dose
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={medicationForm.dose}
+                                                    onChange={e => setMedicationForm(prev => ({ ...prev, dose: e.target.value }))}
+                                                    placeholder="e.g. 25mg, 1 pill daily..."
+                                                    style={{
+                                                        width: "100%", padding: "8px 12px", background: "transparent",
+                                                        border: "1px solid var(--border)", borderRadius: "2px",
+                                                        color: "var(--ink)", fontSize: "14px"
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+
+                                        <div style={{ marginBottom: "12px" }}>
+                                            <label style={{ fontSize: "12px", color: "var(--ink-ghost)", marginBottom: "8px", display: "block" }}>
+                                                Reason (optional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={medicationForm.reason}
+                                                onChange={e => setMedicationForm(prev => ({ ...prev, reason: e.target.value }))}
+                                                placeholder="e.g. doctor's advice, side effects..."
+                                                style={{
+                                                    width: "100%", padding: "8px 12px", background: "transparent",
+                                                    border: "1px solid var(--border)", borderRadius: "2px",
+                                                    color: "var(--ink)", fontSize: "14px"
+                                                }}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            <div className="modal-actions">
+                                <button className="modal-btn secondary" onClick={() => setShowActionDialog(null)}>
+                                    Cancel
+                                </button>
+                                <button
+                                    className="modal-btn primary"
+                                    onClick={() => handleConfirmAction('medication')}
+                                    disabled={!medicationForm.action || !medicationForm.name}
+                                >
+                                    {medicationForm.action === 'add' ? 'Add Medication' :
+                                        medicationForm.action === 'change' ? 'Change Dose' : 'Stop Medication'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* FLOW CONFIRMATION DIALOG */}
+                {showFlowDialog && (
+                    <div className="modal-overlay" onClick={() => setShowFlowDialog(false)}>
+                        <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+                            <div className="modal-handle" />
+                            <div className="modal-title">Period Started</div>
+                            <div style={{ padding: "20px 0", textAlign: "center" }}>
+                                <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔴</div>
+                                <p style={{ fontSize: "18px", color: "var(--ink)", marginBottom: "8px", fontFamily: "'Crimson Pro', serif" }}>
+                                    Got it. How's your flow today?
+                                </p>
+                                <p style={{ fontSize: "14px", color: "var(--ink-ghost)", fontStyle: "italic", marginBottom: "24px" }}>
+                                    This will reset your cycle to Day 1
+                                </p>
+                                <div className="flow-options">
+                                    {[
+                                        { value: 'light', label: 'Light', color: '#fdbbc4' },
+                                        { value: 'normal', label: 'Normal', color: '#e8b4c4' },
+                                        { value: 'heavy', label: 'Heavy', color: '#c47a7a' },
+                                        { value: 'spotting', label: 'Spotting', color: '#d8b4e8' }
+                                    ].map(option => (
+                                        <button
+                                            key={option.value}
+                                            className="flow-option-btn"
+                                            onClick={() => handleFlowConfirmation(option.value)}
+                                            style={{ borderColor: option.color + '40', color: option.color }}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="modal-actions">
+                                <button className="modal-btn secondary" onClick={() => setShowFlowDialog(false)}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* BOTTOM NAV */}
                 <div className="bottom-nav">

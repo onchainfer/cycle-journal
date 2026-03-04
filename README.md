@@ -1,70 +1,134 @@
-# Getting Started with Create React App
+# 🌙 Lilith - Menstrual Cycle Journal & AI Coach
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An intelligent menstrual health tracking app that combines cycle monitoring with AI-powered coaching. Meet Lilith, your expert friend who understands the complexities of hormonal health.
 
-## Available Scripts
+## ✨ Features
 
-In the project directory, you can run:
+### 🏠 **Smart Home Dashboard**
+- Real-time cycle day tracking with phase detection
+- Intelligent insights based on your current cycle position
+- Quick symptom logging with visual cycle calendar
 
-### `npm start`
+### 📝 **Journal & Tracking**
+- Daily symptom and mood tracking
+- Medication and lifestyle change detection
+- Automatic trigger recognition (period start/end, medication changes)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 🤖 **Lilith AI Coach**
+- Powered by **OpenRouter (Gemini 2.0 Flash Lite)** for intelligent responses
+- Context-aware conversations that remember your cycle history
+- Science-backed advice delivered with empathy and understanding
+- Real-time trigger detection and profile updates
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 📅 **Cycle Calendar**
+- Visual cycle tracking with phase coloring
+- Pattern recognition across multiple cycles
+- Symptom correlation with cycle phases
 
-### `npm test`
+## 🚀 Quick Start
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
+- Node.js 16+ 
+- OpenRouter API key ([Get one here](https://openrouter.ai))
 
-### `npm run build`
+### Installation
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd cycle-journal
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. **Configure AI Service**
+   ```bash
+   cp src/services/anthropic.js.example src/services/anthropic.js
+   ```
+   
+   Then edit `src/services/anthropic.js` and replace:
+   ```javascript
+   const OPENROUTER_KEY_DEV = 'YOUR_OPENROUTER_KEY_HERE';
+   ```
+   
+   With your actual OpenRouter API key:
+   ```javascript
+   const OPENROUTER_KEY_DEV = 'sk-or-v1-your-actual-key-here';
+   ```
 
-### `npm run eject`
+4. **Start the application**
+   ```bash
+   npm start
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🧠 AI Integration
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+This app uses **OpenRouter** to access Google's **Gemini 2.0 Flash Lite** model, providing:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- **Fast responses** optimized for conversational AI
+- **Cost-effective** API usage with high-quality outputs  
+- **Reliable uptime** through OpenRouter's infrastructure
+- **Context-aware coaching** that adapts to your cycle phase
 
-## Learn More
+### AI Features:
+- **Trigger Detection**: Automatically recognizes period start/end, medication changes
+- **Profile Integration**: Remembers your conditions, medications, and cycle patterns
+- **Conversational Memory**: Maintains context across multiple conversations
+- **Phase-Aware Advice**: Provides insights based on your current cycle day
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📱 App Structure
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Home** (⚸) - Dashboard with cycle overview and quick insights
+- **Journal** (◎) - Daily logging with symptom tracking
+- **Lilith** (✦) - AI chat interface for questions and guidance
+- **Calendar** (◫) - Visual cycle tracking and pattern analysis
 
-### Code Splitting
+## 🔧 Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Built with:
+- **React 19.2.4** - Modern React with latest features
+- **Create React App** - Zero-config development environment
+- **OpenRouter API** - AI model access and management
+- **Local Storage** - Client-side data persistence
 
-### Analyzing the Bundle Size
+### Key Components:
+- `LilithChatWithTriggers` - Main AI chat interface
+- `HomeScreen` - Dashboard with cycle insights  
+- `JournalScreen` - Daily logging interface
+- `CycleCalendar` - Visual cycle tracking
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### AI Service:
+- `src/services/anthropic.js` - OpenRouter integration
+- `src/components/lilithPrompt.js` - Dynamic prompt generation
 
-### Making a Progressive Web App
+## 🔒 Security
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- API keys are git-ignored for security
+- Environment variables supported for production
+- Secure headers for API communications
+- Local data storage with no external data transmission
 
-### Advanced Configuration
+## 🛠 Available Scripts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- `npm start` - Development server
+- `npm test` - Run tests
+- `npm run build` - Production build
+- `npm run eject` - Eject from Create React App (not recommended)
 
-### Deployment
+## 📄 License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+This project is open source and available under the [MIT License](LICENSE).
 
-### `npm run build` fails to minify
+## 🤝 Contributing
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+**Built with 💜 for menstrual health empowerment**
