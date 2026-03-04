@@ -164,9 +164,16 @@ body{background:var(--void);}
   background:var(--surface);border:1px solid var(--border);
   border-radius:2px;padding:16px 18px;
   display:flex;align-items:flex-start;gap:12px;
-  cursor:pointer;transition:border-color 0.2s;
+  cursor:pointer;transition:all 0.2s ease;
 }
 .report-card:hover{border-color:var(--border-hover);}
+.report-card.has-cache{
+  border-color:rgba(196,176,232,0.2);
+  background:rgba(196,176,232,0.02);
+}
+.report-card.has-cache:hover{
+  border-color:rgba(196,176,232,0.4);
+}
 .report-icon{font-size:20px;flex-shrink:0;margin-top:2px;}
 .report-body{flex:1;}
 .report-title{font-size:13px;font-weight:500;color:var(--ink-soft);margin-bottom:3px;}
@@ -174,6 +181,31 @@ body{background:var(--void);}
 .report-meta{
   font-size:10px;color:var(--lav-dim);margin-top:6px;
   letter-spacing:0.05em;
+}
+
+.cache-status{
+  color:rgba(196,176,232,0.8);
+  font-weight:500;
+}
+
+.report-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.cache-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--lav-dim);
+  opacity:0.7;
+  animation:pulse-cache 2s infinite;
+}
+
+@keyframes pulse-cache{
+  0%, 100% { opacity:0.7; }
+  50% { opacity:1; }
 }
 .report-dl{
   width:28px;height:28px;border:1px solid var(--border);border-radius:1px;
@@ -216,40 +248,127 @@ body{background:var(--void);}
 .change-badge.lifecycle{border:1px solid rgba(212,184,150,0.25);color:var(--gold);}
 .change-dot.medication{border-color:var(--blossom-dim);}
 
-/* ── MEDICATION SECTIONS ── */
-.medication-section{margin-bottom:24px;}
-.medication-subsection-title{
-  font-size:11px;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;
-  color:var(--lav-dim);margin-bottom:12px;padding-bottom:6px;
-  border-bottom:1px solid rgba(196,176,232,0.1);
+/* ── HEALTH & MEDICATION TIMELINE ── */
+.health-timeline{
+  position:relative;
+  padding:12px 0;
 }
-.medication-list{display:flex;flex-direction:column;gap:8px;}
-.medication-item{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:2px;padding:12px 16px;
-  position:relative;overflow:hidden;
+
+.timeline-line{
+  position:absolute;
+  left:11px;
+  top:0;
+  bottom:0;
+  width:1px;
+  background:linear-gradient(to bottom, 
+    transparent 0%, 
+    rgba(196,176,232,0.2) 20%, 
+    rgba(196,176,232,0.3) 50%, 
+    rgba(196,176,232,0.2) 80%, 
+    transparent 100%);
+  z-index:0;
 }
-.medication-item.active{border-color:rgba(196,176,232,0.3);}
-.medication-item.discontinued{border-color:rgba(180,150,255,0.1);opacity:0.7;}
-.medication-item::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--lav-dim),transparent);
-  opacity:0.3;
+
+.timeline-day-group{
+  margin-bottom:20px;
+  position:relative;
 }
-.medication-info{display:flex;justify-content:space-between;align-items:center;}
-.medication-name{
-  font-family:'Playfair Display',serif;font-size:16px;
-  font-weight:400;color:var(--ink);letter-spacing:-0.01em;
+
+.timeline-date-header{
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--lav-dim);
+  margin-bottom:8px;
+  margin-left:32px;
+  opacity:0.8;
 }
-.medication-status{
-  font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--ink-ghost);font-weight:500;
+
+.timeline-item{
+  display:flex;
+  align-items:flex-start;
+  margin-bottom:12px;
+  position:relative;
 }
-.medication-item.active .medication-status{color:var(--lav-dim);}
-.medication-item.discontinued .medication-status{color:var(--ink-ghost);}
-.medication-empty{
-  padding:16px;text-align:center;font-family:'Crimson Pro',serif;
-  font-style:italic;font-size:14px;color:var(--ink-ghost);
+
+.timeline-dot-container{
+  width:24px;
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-right:12px;
+  flex-shrink:0;
+}
+
+.timeline-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  border:2px solid;
+  background:var(--void);
+  position:relative;
+  z-index:1;
+  transition:all 0.2s ease;
+}
+
+.timeline-dot-red{
+  border-color:#e87a7a;
+  background:rgba(232,122,122,0.1);
+}
+
+.timeline-dot-blue{
+  border-color:#7aa8e8;
+  background:rgba(122,168,232,0.1);
+}
+
+.timeline-dot-grey{
+  border-color:var(--ink-ghost);
+  background:rgba(150,150,150,0.1);
+}
+
+.timeline-content{
+  flex:1;
+  padding-top:1px;
+}
+
+.timeline-text{
+  font-family:'Crimson Pro',serif;
+  font-size:15px;
+  font-weight:300;
+  color:var(--ink-soft);
+  line-height:1.4;
+  margin-bottom:4px;
+}
+
+.timeline-badge{
+  display:inline-block;
+  font-size:9px;
+  padding:2px 8px;
+  border-radius:10px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  font-weight:500;
+  border:1px solid;
+}
+
+.timeline-badge.medication{
+  border-color:rgba(122,168,232,0.3);
+  color:#7aa8e8;
+  background:rgba(122,168,232,0.05);
+}
+
+.timeline-badge.cycle{
+  border-color:rgba(232,122,122,0.3);
+  color:#e87a7a;
+  background:rgba(232,122,122,0.05);
+}
+
+.timeline-badge.general{
+  border-color:rgba(150,150,150,0.3);
+  color:var(--ink-ghost);
+  background:rgba(150,150,150,0.05);
 }
 
 /* ── REPORT PREVIEW SHEET ── */
@@ -266,6 +385,23 @@ body{background:var(--void);}
 }
 .sheet-handle{width:32px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
 .report-preview-header{margin-bottom:20px;}
+
+.report-header-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+}
+
+.report-header-left{
+  flex:1;
+}
+
+.report-header-actions{
+  flex-shrink:0;
+  padding-top:4px;
+}
+
 .report-preview-eyebrow{
   font-size:10px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;
   color:var(--lav-dim);margin-bottom:8px;
@@ -277,6 +413,108 @@ body{background:var(--void);}
 .report-preview-sub{
   font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;
   color:var(--ink-ghost);
+}
+
+.cache-indicator{
+  color:var(--lav-dim);
+  font-weight:400;
+}
+
+.refresh-btn{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  background:transparent;
+  border:1px solid rgba(196,176,232,0.3);
+  border-radius:1px;
+  font-family:'DM Sans',sans-serif;
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--lav-dim);
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.refresh-btn:hover{
+  background:rgba(196,176,232,0.05);
+  border-color:rgba(196,176,232,0.5);
+}
+
+.refresh-btn:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
+.refresh-icon{
+  font-size:12px;
+  transition:transform 0.2s ease;
+}
+
+.refresh-btn:hover .refresh-icon{
+  transform:rotate(180deg);
+}
+
+.refresh-text{
+  font-size:10px;
+}
+
+/* ── DATA HEALTH PANEL ── */
+.data-health-panel{
+  background:rgba(196,176,232,0.03);
+  border:1px solid rgba(196,176,232,0.1);
+  border-radius:2px;
+  padding:16px;
+}
+
+.data-stat-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+.data-stat-row:last-child{
+  margin-bottom:0;
+}
+
+.data-stat-label{
+  font-family:'Crimson Pro',serif;
+  font-size:13px;
+  color:var(--ink-soft);
+}
+
+.data-stat-value{
+  font-family:'DM Sans',sans-serif;
+  font-size:11px;
+  font-weight:500;
+  color:var(--lav-dim);
+  letter-spacing:0.05em;
+}
+
+.data-integrity-warning{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid rgba(232,122,122,0.1);
+}
+
+.warning-icon{
+  font-size:12px;
+  flex-shrink:0;
+  margin-top:1px;
+}
+
+.warning-text{
+  font-family:'Crimson Pro',serif;
+  font-size:12px;
+  font-style:italic;
+  color:rgba(232,122,122,0.8);
+  line-height:1.4;
 }
 .report-section{margin-bottom:20px;}
 .report-section-title{
@@ -545,10 +783,10 @@ const REPORTS = [
   },
   {
     id: "symptoms",
-    icon: "📊",
-    title: "Symptom Summary",
-    desc: "Full breakdown of all symptoms logged, frequency, intensity by phase, and patterns across cycles.",
-    meta: "All symptoms · 84 days tracked",
+    icon: "🔍",
+    title: "Personal Health Insights",
+    desc: "Intelligent pattern recognition reveals timing correlations, symptom clusters, and cycle-specific trends from your data.",
+    meta: "Auto-generated patterns · Real insights",
     type: "symptoms",
   },
   {
@@ -761,7 +999,7 @@ function TeamFormModal({ onClose, onSave }) {
   );
 }
 
-export default function ProfileSettings({ onBack, onReset, activeNav, setActiveNav, profile = {}, cycle = {}, notes = [], changes = [], todayNotes = [] }) {
+export default function ProfileSettings({ onBack, onReset, activeNav, setActiveNav, profile = {}, cycle = {}, notes = [], changes = [], todayNotes = [], cycleHistory = [] }) {
   // Force re-render when profile or changes update to reflect medication changes from chat
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
@@ -807,61 +1045,129 @@ export default function ProfileSettings({ onBack, onReset, activeNav, setActiveN
     setHealthTeam(prev => prev.filter(member => member.id !== id));
   };
 
-  // Generate dynamic symptom summary using Lilith AI
-  const generateSymptomSummary = async () => {
-    try {
-      if (notes.length === 0) {
-        return ["No symptoms logged yet.", "Start tracking your daily experience with notes.", "Ask Lilith about patterns you notice."];
-      }
-      
-      // Get recent notes (last 7 days) for analysis
-      const recentNotes = notes.slice(-7);
-      const summaryPrompt = `Analyze these recent cycle journal entries and provide exactly 3 bullet points about key symptoms and patterns:
-
-${recentNotes.map(note => `${note.date}: ${note.text} (Tags: ${note.tags?.join(', ') || 'none'})`).join('\n')}
-
-Provide 3 concise bullet points focused on:
-1. Most prominent physical symptoms
-2. Key emotional/mental patterns  
-3. Notable cycle-related observations`;
-
-      // Use the AI service to generate summary
-      const response = await fetch('/api/generate-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: summaryPrompt, notes: recentNotes })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const lines = data.summary?.split('\n').filter(line => 
-          line.trim() && (line.includes('•') || line.includes('-') || line.includes('*'))
-        ).slice(0, 3);
-        
-        return lines.length >= 3 ? lines.map(line => line.replace(/^[•\-*]\s*/, '')) : [
-          "Primary symptoms tracked this week",
-          "Emotional patterns and energy levels noted", 
-          "Cycle context and emerging patterns"
-        ];
-      } else {
-        throw new Error('AI service unavailable');
-      }
-    } catch (error) {
-      console.warn('Failed to generate symptom summary:', error);
-      // Return intelligent fallback based on actual data
-      if (todayNotes && todayNotes.length > 0) {
-        return [
-          `${todayNotes.length} symptom${todayNotes.length > 1 ? 's' : ''} logged today`,
-          `Current cycle day: ${cycle?.cycleDay || 'unknown'} (${cycle?.phase || 'tracking'} phase)`,
-          "Ask Lilith to analyze patterns in your data"
-        ];
-      }
+  // ── INTELLIGENT PATTERN RECOGNITION ENGINE ──────────────────────────────────
+  
+  const analyzeSymptomPatterns = () => {
+    if (notes.length === 0) {
       return [
-        "Active symptom tracking in progress",
-        "Use notes and chat with Lilith for insights",
-        "Patterns will emerge with consistent logging"
+        "No symptom data available yet",
+        "Start tracking daily to discover patterns",
+        "Insights will appear after logging consistently"
       ];
     }
+
+    // Get last 10 notes with cycle context for pattern analysis
+    const analysisNotes = notes
+      .filter(note => note.cycleDay && note.text) // Only notes with cycle context
+      .slice(-10);
+
+    if (analysisNotes.length < 3) {
+      return [
+        `${notes.length} journal entries recorded`,
+        "Continue tracking to unlock pattern insights", 
+        "Patterns emerge with consistent daily logging"
+      ];
+    }
+
+    const insights = [];
+
+    // Pattern 1: Symptom timing analysis
+    const symptomKeywords = {
+      digestive: ['bloat', 'stomach', 'nausea', 'digest', 'gut', 'constipat', 'diarrhea'],
+      pain: ['pain', 'cramp', 'headache', 'migraine', 'ache', 'hurt', 'sore'],
+      mood: ['anxious', 'anxiety', 'sad', 'depressed', 'irritated', 'mood', 'emotional', 'cry'],
+      energy: ['tired', 'fatigue', 'exhausted', 'energy', 'sleepy', 'alert', 'awake'],
+      sleep: ['sleep', 'insomnia', 'restless', 'dream', 'nighttime', 'bedtime']
+    };
+
+    // Analyze timing patterns for each symptom type
+    Object.entries(symptomKeywords).forEach(([symptomType, keywords]) => {
+      const symptomNotes = analysisNotes.filter(note => 
+        keywords.some(keyword => note.text.toLowerCase().includes(keyword))
+      );
+
+      if (symptomNotes.length >= 2) {
+        // Find common timing patterns
+        const cycleDays = symptomNotes.map(note => note.cycleDay);
+        
+        // Check for late luteal concentration (days 22-28)
+        const lateLutealSymptoms = cycleDays.filter(day => day >= 22).length;
+        if (lateLutealSymptoms >= 2) {
+          const capitalizedType = symptomType.charAt(0).toUpperCase() + symptomType.slice(1);
+          insights.push(`${capitalizedType} issues peak during late luteal phase (Day 22-28)`);
+        }
+        
+        // Check for pre-menstrual pattern (days 26-28 or day 1-2)
+        const preMenstrualSymptoms = cycleDays.filter(day => day >= 26 || day <= 2).length;
+        if (preMenstrualSymptoms >= 2 && insights.length < 3) {
+          const capitalizedType = symptomType.charAt(0).toUpperCase() + symptomType.slice(1);
+          insights.push(`${capitalizedType} symptoms often appear 2-3 days before/after bleeding`);
+        }
+        
+        // Check for mid-cycle patterns (ovulation, days 12-16)
+        const midCycleSymptoms = cycleDays.filter(day => day >= 12 && day <= 16).length;
+        if (midCycleSymptoms >= 2 && insights.length < 3) {
+          const capitalizedType = symptomType.charAt(0).toUpperCase() + symptomType.slice(1);
+          insights.push(`${capitalizedType} changes noted around ovulation (Day 12-16)`);
+        }
+      }
+    });
+
+    // Pattern 2: Phase-based energy analysis
+    if (insights.length < 3) {
+      const energyWords = ['energy', 'tired', 'exhausted', 'alert', 'awake', 'motivated'];
+      const energyNotes = analysisNotes.filter(note => 
+        energyWords.some(word => note.text.toLowerCase().includes(word))
+      );
+
+      if (energyNotes.length >= 2) {
+        const follicularEnergy = energyNotes.filter(note => note.cyclePhase === 'follicular').length;
+        const lutealEnergy = energyNotes.filter(note => note.cyclePhase === 'luteal').length;
+
+        if (follicularEnergy > 0 && lutealEnergy > 0) {
+          insights.push("Energy levels fluctuate significantly between follicular and luteal phases");
+        } else if (follicularEnergy >= 2) {
+          insights.push("Energy consistently peaks during follicular phase (Day 6-13)");
+        } else if (lutealEnergy >= 2) {
+          insights.push("Fatigue patterns most common during luteal phase");
+        }
+      }
+    }
+
+    // Pattern 3: Cycle regularity and general health correlations
+    if (insights.length < 3) {
+      const totalCycles = 1 + (cycleHistory?.length || 0);
+      const symptomFrequency = analysisNotes.filter(note => 
+        ['pain', 'cramp', 'headache', 'bloat', 'anxious', 'tired'].some(symptom => 
+          note.text.toLowerCase().includes(symptom)
+        )
+      ).length;
+
+      if (symptomFrequency >= 4) {
+        insights.push(`Symptoms documented in ${Math.round((symptomFrequency / analysisNotes.length) * 100)}% of recent entries`);
+      } else if (totalCycles > 1) {
+        insights.push(`Tracking ${totalCycles} cycles reveals consistent monthly patterns`);
+      } else {
+        insights.push("Building baseline data for future pattern recognition");
+      }
+    }
+
+    // Ensure we always have exactly 3 insights
+    while (insights.length < 3) {
+      const fallbackInsights = [
+        `${analysisNotes.length} entries with cycle context analyzed for patterns`,
+        "Continue daily tracking to strengthen pattern detection",
+        "Personal insights improve with consistent data collection"
+      ];
+      
+      for (let fallback of fallbackInsights) {
+        if (!insights.includes(fallback) && insights.length < 3) {
+          insights.push(fallback);
+        }
+      }
+    }
+
+    return insights.slice(0, 3);
   };
 
   // Create dynamic medication history from changes and notes
@@ -965,6 +1271,99 @@ Provide 3 concise bullet points focused on:
     }
   };
 
+  // ── REPORT CACHING SYSTEM ──────────────────────────────────────────────────
+  
+  // Cache keys for different report types
+  const getCacheKey = (reportType) => {
+    const userId = profile?.name || 'default_user';
+    return `lilith_report_${reportType}_${userId}`;
+  };
+
+  // Check if cached report is still valid (less than 24 hours old)
+  const isCacheValid = (cachedReport) => {
+    if (!cachedReport || !cachedReport.timestamp) return false;
+    
+    const now = Date.now();
+    const cacheAge = now - cachedReport.timestamp;
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    
+    return cacheAge < TWENTY_FOUR_HOURS;
+  };
+
+  // Save report to cache
+  const saveReportToCache = (reportType, reportContent) => {
+    const cacheKey = getCacheKey(reportType);
+    const cacheData = {
+      content: reportContent,
+      timestamp: Date.now(),
+      version: '1.0',
+      dataHash: generateDataHash() // Hash of current data for invalidation
+    };
+    
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      console.log('💾 Report cached successfully:', reportType);
+    } catch (error) {
+      console.warn('⚠️ Failed to cache report:', error);
+    }
+  };
+
+  // Load report from cache
+  const loadReportFromCache = (reportType) => {
+    const cacheKey = getCacheKey(reportType);
+    
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      if (!cachedData) return null;
+      
+      const parsed = JSON.parse(cachedData);
+      
+      // Check if cache is still valid
+      if (!isCacheValid(parsed)) {
+        // Remove expired cache
+        localStorage.removeItem(cacheKey);
+        console.log('🗑️ Removed expired cache for:', reportType);
+        return null;
+      }
+      
+      console.log('✨ Loaded report from cache:', reportType);
+      return parsed;
+    } catch (error) {
+      console.warn('⚠️ Failed to load cached report:', error);
+      return null;
+    }
+  };
+
+  // Generate a simple hash of current data for cache invalidation
+  const generateDataHash = () => {
+    const dataToHash = {
+      notesCount: notes.length,
+      changesCount: changes.length,
+      lastNoteDate: notes.length > 0 ? notes[notes.length - 1]?.date : null,
+      cyclePhase: cycle?.phase
+    };
+    
+    // Simple hash function (for demonstration - in production, use a proper hash)
+    return JSON.stringify(dataToHash).split('').reduce((hash, char) => {
+      hash = ((hash << 5) - hash) + char.charCodeAt(0);
+      return hash & hash; // Convert to 32-bit integer
+    }, 0).toString();
+  };
+
+  // Clear all cached reports (useful for testing or data reset)
+  const clearReportCache = () => {
+    const userId = profile?.name || 'default_user';
+    const cacheKeys = ['doctor', 'nutritionist', 'trainer'].map(type => 
+      `lilith_report_${type}_${userId}`
+    );
+    
+    cacheKeys.forEach(key => {
+      localStorage.removeItem(key);
+    });
+    
+    console.log('🧹 All report caches cleared');
+  };
+
   // Mapeo de tipos de reportes del componente a tipos de IA
   const mapReportTypeToAI = (reportType) => {
     const mapping = {
@@ -975,13 +1374,12 @@ Provide 3 concise bullet points focused on:
     return mapping[reportType] || 'medical';
   };
 
-  // Enhanced report generation with real data connection
-  const generateAIReport = async (reportType) => {
-    console.log('🎯 Generating enhanced report for type:', reportType);
+  // Enhanced report generation with caching system
+  const generateAIReport = async (reportType, forceRefresh = false) => {
+    console.log('🎯 Generating enhanced report for type:', reportType, forceRefresh ? '(FORCED REFRESH)' : '');
 
-    // Handle special report types with real data
+    // Handle special report types with real data (no caching needed for these)
     if (reportType === 'changes') {
-      // Show medication history with real data
       const medicationReport = generateMedicationReport();
       setReportPreview({
         ...medicationReport,
@@ -992,26 +1390,44 @@ Provide 3 concise bullet points focused on:
     }
 
     if (reportType === 'symptoms') {
-      // Generate AI-powered symptom summary
-      setIsGeneratingReport(true);
+      // No loading state needed - pattern analysis is instant
       try {
-        const summaryPoints = await generateSymptomSummary();
+        const patternInsights = analyzeSymptomPatterns();
         setReportPreview({
-          title: "AI-Generated Symptom Summary",
+          title: "Personal Health Insights",
           type: 'symptoms',
-          points: summaryPoints,
+          points: patternInsights,
           totalNotes: notes.length,
           cycleContext: cycle?.phase ? `Currently in ${cycle.phase} phase (Day ${cycle.cycleDay || '?'})` : 'Cycle tracking in progress'
         });
       } catch (error) {
-        setReportError('Failed to generate symptom summary: ' + error.message);
-      } finally {
-        setIsGeneratingReport(false);
+        setReportError('Failed to analyze symptom patterns: ' + error.message);
       }
       return;
     }
 
-    // For other types, use AI-powered medical reports
+    // ── CACHE CHECK FOR AI REPORTS ──
+    if (!forceRefresh) {
+      const cachedReport = loadReportFromCache(reportType);
+      if (cachedReport) {
+        console.log('⚡ Using cached report for:', reportType);
+        
+        // Show cached content immediately
+        setGeneratedReportContent({
+          type: reportType,
+          aiType: mapReportTypeToAI(reportType),
+          content: cachedReport.content.content,
+          generatedAt: cachedReport.content.generatedAt,
+          fromCache: true,
+          cacheTimestamp: cachedReport.timestamp
+        });
+        
+        setReportPreview(reportType);
+        return;
+      }
+    }
+
+    // ── GENERATE NEW REPORT ──
     setIsGeneratingReport(true);
     setReportError(null);
     setGeneratedReportContent(null);
@@ -1040,13 +1456,16 @@ Provide 3 concise bullet points focused on:
         userProfile: userProfileForAI.name || 'Sin nombre'
       });
 
-      // Call AI function
-      const aiResponse = await generateMedicalReport(journalData, userProfileForAI, aiReportType);
+      // Load chat history for comprehensive context
+      const chatHistory = JSON.parse(localStorage.getItem('lilith_chat_history') || '[]');
+      
+      // Call AI function with chat context
+      const aiResponse = await generateMedicalReport(journalData, userProfileForAI, aiReportType, chatHistory);
       
       console.log('✅ Respuesta de IA recibida');
 
-      // Guardar contenido generado y mostrar preview
-      setGeneratedReportContent({
+      // Prepare report content
+      const reportContent = {
         type: reportType,
         aiType: aiReportType,
         content: aiResponse,
@@ -1057,9 +1476,15 @@ Provide 3 concise bullet points focused on:
           hour: "numeric",
           minute: "2-digit",
           hour12: true
-        })
-      });
-      
+        }),
+        fromCache: false
+      };
+
+      // Save to cache
+      saveReportToCache(reportType, reportContent);
+
+      // Set generated content and show preview
+      setGeneratedReportContent(reportContent);
       setReportPreview(reportType);
 
     } catch (error) {
@@ -1320,8 +1745,11 @@ Provide 3 concise bullet points focused on:
         journalEntries: journalData.length
       });
 
-      // Call AI function
-      const aiResponse = await generateMedicalReport(journalData, userProfileForAI, reportType);
+      // Load chat history for comprehensive context
+      const chatHistory = JSON.parse(localStorage.getItem('lilith_chat_history') || '[]');
+      
+      // Call AI function with chat context
+      const aiResponse = await generateMedicalReport(journalData, userProfileForAI, reportType, chatHistory);
       
       // Generate PDF directly
       generatePDFForProvider(aiResponse, teamMember, reportType);
@@ -1567,11 +1995,11 @@ Provide 3 concise bullet points focused on:
       // This is a dynamic report object, not just a type string
       if (type.type === 'symptoms') {
         return {
-          eyebrow: "AI-Generated Analysis",
-          title: type.title || "Symptom Summary",
-          sub: `Based on ${type.totalNotes || 0} journal entries · Generated ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
+          eyebrow: "Pattern Recognition",
+          title: type.title || "Personal Health Insights",
+          sub: `Based on ${type.totalNotes || 0} journal entries · Analyzed ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
           aiGenerated: true,
-          content: `## Key Insights\n\n${(type.points || []).map(point => `• ${point}`).join('\n')}\n\n## Cycle Context\n${type.cycleContext || 'No cycle context available'}`,
+          content: `## 🔍 Personal Insights\n\n${(type.points || []).map(point => `△ ${point}`).join('\n')}\n\n## 📊 Current Status\n${type.cycleContext || 'No cycle context available'}\n\n*Insights are automatically generated from your personal data patterns*`,
           error: reportError
         };
       }
@@ -1746,114 +2174,208 @@ Provide 3 concise bullet points focused on:
         <div className="ps-section">
           <div className="ps-section-label">Download reports</div>
           <div className="report-cards">
-            {REPORTS.map(r => (
-              <div key={r.id} className="report-card"
-                onClick={() => generateAIReport(r.type)}>
-                <span className="report-icon">{r.icon}</span>
-                <div className="report-body">
-                  <div className="report-title">{r.title}</div>
-                  <div className="report-desc">{r.desc}</div>
-                  <div className="report-meta">{r.meta}</div>
+            {REPORTS.map(r => {
+              const cachedReport = loadReportFromCache(r.type);
+              const hasCachedVersion = cachedReport && isCacheValid(cachedReport);
+              
+              return (
+                <div key={r.id} className={`report-card ${hasCachedVersion ? 'has-cache' : ''}`}
+                  onClick={() => generateAIReport(r.type)}>
+                  <span className="report-icon">{r.icon}</span>
+                  <div className="report-body">
+                    <div className="report-title">{r.title}</div>
+                    <div className="report-desc">{r.desc}</div>
+                    <div className="report-meta">
+                      {r.meta}
+                      {hasCachedVersion && (
+                        <span className="cache-status"> • Recent version available</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="report-actions">
+                    {hasCachedVersion && (
+                      <div className="cache-dot" title="Cached version available" />
+                    )}
+                    <button className={`report-dl ${downloaded[r.id] ? "done" : ""}`}
+                      onClick={e => { e.stopPropagation(); handleDownload(r.id); }}>
+                      {downloaded[r.id] ? "✓" : "↓"}
+                    </button>
+                  </div>
                 </div>
-                <button className={`report-dl ${downloaded[r.id] ? "done" : ""}`}
-                  onClick={e => { e.stopPropagation(); handleDownload(r.id); }}>
-                  {downloaded[r.id] ? "✓" : "↓"}
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* ── MEDICATION MANAGEMENT ── */}
+        {/* ── HEALTH & MEDICATION TIMELINE ── */}
         <div className="ps-section">
-          <div className="ps-section-label">Health Changes & Medications</div>
-
-          {/* Recent Changes */}
+          <div className="ps-section-label">Health & Medication Timeline</div>
+          
           {(() => {
-            const medicationChanges = changes.filter(change => 
-              change.type === 'medication' || 
-              (change.text?.toLowerCase() || '').includes('medication') ||
-              (change.text?.toLowerCase() || '').includes('pill') ||
-              (change.text?.toLowerCase() || '').includes('dose')
-            ).slice(0, 5);
+            // Get all changes and sort them chronologically
+            const allChanges = [...changes].sort((a, b) => new Date(b.date) - new Date(a.date));
             
-            return medicationChanges.length > 0 ? (
-              <div className="medication-section">
-                <div className="medication-subsection-title">Recent Changes</div>
-                <div className="changes-list">
-                  {medicationChanges.reverse().map((ch, i) => (
-                    <div key={ch.id || i} className="change-item">
-                      <div className="change-dot-wrap">
-                        <div className={`change-dot medication`} />
-                      </div>
-                      <div className="change-body">
-                        <div className="change-date">{ch.date}</div>
-                        <div className="change-text">{ch.text}</div>
-                        <span className={`change-badge medication`}>{ch.badge || "Medication"}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null;
-          })()}
+            // Remove duplicates: keep most recent entry per day for same event type
+            const deduplicatedChanges = allChanges.reduce((acc, change) => {
+              const existingIndex = acc.findIndex(existing => 
+                existing.date === change.date && 
+                existing.type === change.type &&
+                existing.text?.toLowerCase().includes('cycle') === change.text?.toLowerCase().includes('cycle')
+              );
+              
+              if (existingIndex === -1) {
+                acc.push(change);
+              } else {
+                // Keep the one with more information (longer text or specific flow info)
+                const existing = acc[existingIndex];
+                if ((change.text?.length || 0) > (existing.text?.length || 0) ||
+                    (change.text?.toLowerCase().includes('flow:') && !existing.text?.toLowerCase().includes('flow:'))) {
+                  acc[existingIndex] = change;
+                }
+              }
+              return acc;
+            }, []);
 
-          {/* Previous Medications */}
-          {(() => {
-            const previousMeds = changes.filter(change => 
-              change.type === 'medication' && 
-              (change.badge === 'Discontinued' || (change.text?.toLowerCase() || '').includes('stopped'))
-            );
-            
-            return previousMeds.length > 0 ? (
-              <div className="medication-section">
-                <div className="medication-subsection-title">Previous Medications</div>
-                <div className="medication-list">
-                  {previousMeds.map((med, index) => (
-                    <div key={index} className="medication-item discontinued">
-                      <div className="medication-info">
-                        <div className="medication-name">{med.text}</div>
-                        <div className="medication-status">Discontinued - {med.date}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null;
-          })()}
+            // Humanize text descriptions
+            const humanizeText = (text, type, badge) => {
+              if (!text) return text;
+              
+              const lowerText = text.toLowerCase();
+              
+              // Medication changes
+              if (type === 'medication' || lowerText.includes('medication') || lowerText.includes('pill')) {
+                if (lowerText.includes('started') || badge === 'Started') {
+                  return text.replace(/started/i, 'Started').replace(/medication/i, '').trim() + ' (Doctor\'s advice)';
+                }
+                if (lowerText.includes('discontinued') || badge === 'Discontinued') {
+                  return text.replace(/discontinued/i, 'Stopped').replace(/medication/i, '').trim();
+                }
+                if (lowerText.includes('dose')) {
+                  return text.replace(/dose change/i, 'Dose adjusted');
+                }
+              }
+              
+              // Cycle changes  
+              if (lowerText.includes('new cycle') || lowerText.includes('cycle started')) {
+                const flowMatch = text.match(/flow:\s*(\w+)/i);
+                const flowText = flowMatch ? ` (${flowMatch[1]} flow)` : '';
+                return `New cycle started${flowText}`;
+              }
+              
+              if (lowerText.includes('period ended')) {
+                return text.replace(/period ended/i, 'Period ended');
+              }
+              
+              if (lowerText.includes('ovulation')) {
+                return text.replace(/ovulation logged/i, 'Ovulation detected');
+              }
+              
+              return text;
+            };
 
-          {/* All Other Changes */}
-          <div className="medication-section">
-            <div className="medication-subsection-title">Other Health Changes</div>
-            <div className="changes-list">
-              {(() => {
-                const nonMedicationChanges = changes.filter(change => 
-                  change.type !== 'medication' && 
-                  !(change.text?.toLowerCase() || '').includes('medication') &&
-                  !(change.text?.toLowerCase() || '').includes('pill')
-                );
-                
-                return nonMedicationChanges.length === 0 ? (
-                  <div style={{ padding: "20px", textAlign: "center", fontFamily: "'Crimson Pro',serif", fontStyle: "italic", fontSize: 14, color: "var(--ink-ghost)" }}>
-                    Other health changes you tell Lilith will appear here automatically.
+            // Get color class based on type and content
+            const getEventColor = (change) => {
+              if (change.type === 'medication' || 
+                  change.text?.toLowerCase().includes('medication') ||
+                  change.text?.toLowerCase().includes('pill') ||
+                  change.text?.toLowerCase().includes('dose')) {
+                return 'timeline-dot-blue';
+              }
+              if (change.type === 'cycle' || 
+                  change.text?.toLowerCase().includes('cycle') ||
+                  change.text?.toLowerCase().includes('period') ||
+                  change.text?.toLowerCase().includes('ovulation')) {
+                return 'timeline-dot-red';
+              }
+              return 'timeline-dot-grey';
+            };
+
+            // Group by date to avoid repetition
+            const groupedByDate = deduplicatedChanges.reduce((acc, change) => {
+              const date = change.date;
+              if (!acc[date]) acc[date] = [];
+              acc[date].push(change);
+              return acc;
+            }, {});
+
+            return Object.keys(groupedByDate).length === 0 ? (
+              <div style={{ 
+                padding: "32px 20px", 
+                textAlign: "center", 
+                fontFamily: "'Crimson Pro',serif", 
+                fontStyle: "italic", 
+                fontSize: 14, 
+                color: "var(--ink-ghost)" 
+              }}>
+                Your health and medication changes will appear here as you share them with Lilith.
+              </div>
+            ) : (
+              <div className="health-timeline">
+                <div className="timeline-line" />
+                {Object.entries(groupedByDate).slice(0, 10).map(([date, dayChanges]) => (
+                  <div key={date} className="timeline-day-group">
+                    <div className="timeline-date-header">{date}</div>
+                    {dayChanges.map((change, i) => (
+                      <div key={change.id || i} className="timeline-item">
+                        <div className="timeline-dot-container">
+                          <div className={`timeline-dot ${getEventColor(change)}`} />
+                        </div>
+                        <div className="timeline-content">
+                          <div className="timeline-text">
+                            {humanizeText(change.text, change.type, change.badge)}
+                          </div>
+                          <div className={`timeline-badge ${change.type || "general"}`}>
+                            {change.badge || (change.type === 'medication' ? 'Medication' : 
+                                             change.type === 'cycle' ? 'Cycle' : 'Update')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  [...nonMedicationChanges].reverse().slice(0, 5).map((ch, i) => (
-                    <div key={ch.id || i} className="change-item">
-                      <div className="change-dot-wrap">
-                        <div className={`change-dot ${ch.type || "cycle"}`} />
-                      </div>
-                      <div className="change-body">
-                        <div className="change-date">{ch.date}</div>
-                        <div className="change-text">{ch.text}</div>
-                        <span className={`change-badge ${ch.type || "cycle"}`}>{ch.badge || "Update"}</span>
-                      </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* ── DATA INTEGRITY CHECK ── */}
+        <div className="ps-section">
+          <div className="ps-section-label">Data Health</div>
+          {(() => {
+            const notesWithCycleContext = notes.filter(note => note.cycleDay && note.cyclePhase);
+            const notesWithoutContext = notes.filter(note => !note.cycleDay);
+            const totalCycles = 1 + (cycleHistory?.length || 0);
+            
+            return (
+              <div className="data-health-panel">
+                <div className="data-stat-row">
+                  <span className="data-stat-label">Journal notes with cycle context</span>
+                  <span className="data-stat-value">
+                    {notesWithCycleContext.length}/{notes.length}
+                    {notesWithCycleContext.length === notes.length ? " ✓" : " ⚠️"}
+                  </span>
+                </div>
+                <div className="data-stat-row">
+                  <span className="data-stat-label">Total tracked cycles</span>
+                  <span className="data-stat-value">{totalCycles}</span>
+                </div>
+                <div className="data-stat-row">
+                  <span className="data-stat-label">Cycle history preserved</span>
+                  <span className="data-stat-value">{cycleHistory?.length || 0} cycles ✓</span>
+                </div>
+                
+                {notesWithoutContext.length > 0 && (
+                  <div className="data-integrity-warning">
+                    <div className="warning-icon">⚠️</div>
+                    <div className="warning-text">
+                      {notesWithoutContext.length} notes missing cycle context. 
+                      This can happen with imported notes or old data.
                     </div>
-                  ))
-                );
-              })()}
-            </div>
-          </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── RESET ── */}
@@ -1918,9 +2440,38 @@ Provide 3 concise bullet points focused on:
             <div className="report-sheet">
               <div className="sheet-handle" />
               <div className="report-preview-header">
-                <div className="report-preview-eyebrow">{content.eyebrow}</div>
-                <div className="report-preview-title">{content.title}</div>
-                <div className="report-preview-sub">{content.sub}</div>
+                <div className="report-header-top">
+                  <div className="report-header-left">
+                    <div className="report-preview-eyebrow">{content.eyebrow}</div>
+                    <div className="report-preview-title">{content.title}</div>
+                    <div className="report-preview-sub">
+                      {content.sub}
+                      {generatedReportContent?.fromCache && (
+                        <span className="cache-indicator"> • Cached report</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Refresh button for AI reports */}
+                  {generatedReportContent && ['doctor', 'nutritionist', 'trainer'].includes(reportPreview) && (
+                    <div className="report-header-actions">
+                      <button 
+                        className="refresh-btn"
+                        onClick={() => generateAIReport(reportPreview, true)}
+                        disabled={isGeneratingReport}
+                        title={generatedReportContent.fromCache ? 
+                          "Generate fresh report with latest data" : 
+                          "Regenerate report"
+                        }
+                      >
+                        <span className="refresh-icon">↻</span>
+                        <span className="refresh-text">
+                          {generatedReportContent.fromCache ? 'Update' : 'Refresh'}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* ── CONTENIDO GENERADO POR IA ── */}

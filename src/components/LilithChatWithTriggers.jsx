@@ -1142,62 +1142,93 @@ export default function LilithChatWithTriggers({
         return response;
     };
 
-    // Parse AI response for intent JSON and clean the response completely
+    // AGGRESSIVE JSON REMOVAL - Ensures NO technical content reaches users
     const parseAIIntents = (response) => {
         try {
-            // Multiple patterns to catch all possible JSON formats
-            const jsonPatterns = [
-                /\{[\s\S]*?"intent"[\s\S]*?\}/g,  // Basic intent JSON
-                /\{[^{}]*"intent"[^{}]*\}/g,      // Single line JSON
-                /```json\s*\{[\s\S]*?\}\s*```/g,  // Code block JSON
-                /`\{[\s\S]*?\}`/g                 // Inline code JSON
+            // COMPREHENSIVE patterns to catch ALL possible JSON/technical formats
+            const technicalPatterns = [
+                // JSON blocks with various wrapping
+                /```json\s*\{[\s\S]*?\}\s*```/gi,
+                /```\s*\{[\s\S]*?\}\s*```/gi,
+                /`\{[\s\S]*?\}`/gi,
+                
+                // Raw JSON objects (with and without intent)
+                /\{[\s\S]*?"intent"[\s\S]*?\}/gi,
+                /\{[\s\S]*?"action"[\s\S]*?\}/gi,
+                /\{[\s\S]*?"type"[\s\S]*?\}/gi,
+                /\{[^{}]*"[^"]*"[^{}]*\}/gi,
+                
+                // ANY content between curly braces that looks technical
+                /\{[^{}]*\}/g,
+                
+                // Action-like patterns
+                /action:\s*\{[^}]*\}/gi,
+                /intent:\s*\{[^}]*\}/gi,
+                
+                // Leftover technical artifacts
+                /\[object Object\]/gi,
+                /undefined/gi,
+                /null/gi
             ];
 
             let cleanResponse = response;
             let detectedIntent = null;
 
-            // Try each pattern to find and remove JSON
-            for (const pattern of jsonPatterns) {
+            // AGGRESSIVE REMOVAL: Try to parse intent first, then remove ALL JSON
+            for (const pattern of technicalPatterns) {
                 const matches = cleanResponse.match(pattern);
                 if (matches) {
                     for (const match of matches) {
                         try {
-                            // Extract just the JSON part (remove markdown if present)
-                            let jsonText = match.replace(/```json\s*|\s*```|`/g, '');
-                            const intentData = JSON.parse(jsonText);
-
-                            if (intentData.intent) {
-                                detectedIntent = intentData;
+                            // Try to extract intent before removing
+                            if (!detectedIntent && (match.includes('"intent"') || match.includes('"action"'))) {
+                                let jsonText = match.replace(/```json\s*|\s*```|`/g, '');
+                                const intentData = JSON.parse(jsonText);
+                                
+                                if (intentData.intent) {
+                                    detectedIntent = intentData;
+                                }
                             }
-
-                            // Remove the entire match from response
-                            cleanResponse = cleanResponse.replace(match, '');
                         } catch (parseError) {
-                            // If JSON parsing fails, still remove the match
-                            cleanResponse = cleanResponse.replace(match, '');
-                            console.log('Removed unparseable JSON-like content:', match.substring(0, 50));
+                            // Doesn't matter if parsing fails - we remove it anyway
                         }
+                        
+                        // ALWAYS remove technical content from user-visible response
+                        cleanResponse = cleanResponse.replace(match, '').trim();
                     }
                 }
             }
 
-            // Comprehensive cleanup of whitespace and artifacts
+            // NUCLEAR CLEANUP: Remove any remaining technical artifacts
             cleanResponse = cleanResponse
-                .replace(/\n\s*\n\s*\n+/g, '\n\n') // Remove triple+ newlines
-                .replace(/^\s+|\s+$/g, '') // Trim start and end
-                .replace(/\n\s+/g, '\n') // Remove leading spaces on lines
-                .replace(/\s{2,}/g, ' ') // Replace multiple spaces with single space
-                .replace(/\n+/g, '\n') // Normalize line breaks
+                // Remove any remaining curly braces content
+                .replace(/\{[^{}]*\}/g, '')
+                // Remove markdown code blocks
+                .replace(/```[\s\S]*?```/g, '')
+                .replace(/`[^`]*`/g, '')
+                // Clean up whitespace chaos
+                .replace(/\n\s*\n\s*\n+/g, '\n\n')
+                .replace(/^\s+|\s+$/g, '')
+                .replace(/\s{3,}/g, ' ')
+                .replace(/\n{3,}/g, '\n\n')
+                // Remove common technical artifacts
+                .replace(/\[object Object\]/gi, '')
+                .replace(/undefined/gi, '')
+                .replace(/null/gi, '')
                 .trim();
 
-            // Return cleaned response
+            // FINAL SAFETY: If response is empty or too short, provide fallback
+            if (!cleanResponse || cleanResponse.length < 10) {
+                cleanResponse = "I hear you. Tell me more about what's happening with your body right now?";
+            }
+
             return {
                 intent: detectedIntent,
-                cleanResponse: cleanResponse || response.replace(/\{[\s\S]*?\}/g, '').trim()
+                cleanResponse: cleanResponse
             };
 
         } catch (e) {
-            console.log('Error parsing AI intents:', e);
+            console.log('Error in aggressive JSON removal:', e);
             // Fallback: just remove any JSON-like patterns
             const fallbackClean = response.replace(/\{[\s\S]*?\}/g, '').trim();
             return { intent: null, cleanResponse: fallbackClean || response };

@@ -666,6 +666,114 @@ export default function HomeScreen({ profile, cycle, notes: allNotes, addNote, t
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
+  // ── DYNAMIC LILITH GREETING LOGIC ──────────────────────────────────────────
+  const generateDailyHook = () => {
+    const userName = name || "Hey there";
+    const recentNotes = (allNotes || []).slice(-3); // Last 3 notes
+    const lastNote = recentNotes[recentNotes.length - 1];
+    const yesterdayNote = recentNotes.find(note => {
+      const noteDate = new Date(note.date);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return noteDate.toDateString() === yesterday.toDateString();
+    });
+
+    // Time-based greeting variations
+    const hour = new Date().getHours();
+    const timeGreeting = 
+      hour < 12 ? "Good morning" :
+      hour < 17 ? "Hey" :
+      hour < 21 ? "Good evening" : "Hey";
+
+    // Phase-specific context
+    const phaseContext = {
+      menstrual: {
+        energy: "resting",
+        focus: "self-care",
+        questions: ["How are your cramps?", "Getting enough rest?", "Need any comfort tips?"]
+      },
+      follicular: {
+        energy: "rising", 
+        focus: "new projects",
+        questions: ["Feeling that energy boost?", "Ready for something new?", "How's your motivation?"]
+      },
+      ovulation: {
+        energy: "peak",
+        focus: "peak performance", 
+        questions: ["Feeling confident today?", "Energy levels high?", "Social mood kicking in?"]
+      },
+      luteal: {
+        energy: cycleDay && cycleDay >= 22 ? "low" : "moderate",
+        focus: cycleDay && cycleDay >= 22 ? "PMS prep" : "winding down",
+        questions: cycleDay && cycleDay >= 22 ? 
+          ["Any PMS symptoms yet?", "How's your mood?", "Need comfort strategies?"] :
+          ["How's your energy today?", "Feeling any changes?", "Ready to slow down?"]
+      }
+    };
+
+    // Generate contextual message based on recent notes and phase
+    if (yesterdayNote) {
+      const noteText = yesterdayNote.text.toLowerCase();
+      
+      // Sleep-related
+      if (noteText.includes('sleep') || noteText.includes('tired') || noteText.includes('insomnia')) {
+        return `${timeGreeting} ${userName}, noticed you had trouble sleeping yesterday. How are you feeling this morning?`;
+      }
+      
+      // Pain/cramps
+      if (noteText.includes('pain') || noteText.includes('cramp') || noteText.includes('hurt')) {
+        return `${timeGreeting} ${userName}, saw you were dealing with pain yesterday. How are you holding up today?`;
+      }
+      
+      // Mood/anxiety
+      if (noteText.includes('anxious') || noteText.includes('sad') || noteText.includes('stress')) {
+        return `${timeGreeting} ${userName}, yesterday seemed tough. How's your headspace today?`;
+      }
+      
+      // Energy/fatigue
+      if (noteText.includes('tired') || noteText.includes('energy') || noteText.includes('exhausted')) {
+        return `${timeGreeting} ${userName}, energy was low yesterday. Feeling any better today?`;
+      }
+      
+      // Food/cravings
+      if (noteText.includes('craving') || noteText.includes('hungry') || noteText.includes('food')) {
+        return `${timeGreeting} ${userName}, noticed those cravings yesterday. How's your appetite today?`;
+      }
+    }
+
+    // Phase-specific greetings with personal touch
+    if (phase && phaseContext[phase]) {
+      const context = phaseContext[phase];
+      const randomQuestion = context.questions[Math.floor(Math.random() * context.questions.length)];
+      
+      if (phase === "menstrual") {
+        return `${timeGreeting} ${userName}, you're in your ${phase} phase. ${randomQuestion}`;
+      }
+      
+      if (phase === "ovulation") {
+        return `${timeGreeting} ${userName}! You're at your peak today. ${randomQuestion}`;
+      }
+      
+      if (phase === "luteal" && cycleDay && cycleDay >= 22) {
+        return `${timeGreeting} ${userName}, late luteal phase vibes. ${randomQuestion}`;
+      }
+      
+      return `${timeGreeting} ${userName}, you're in your ${phase} phase. ${randomQuestion}`;
+    }
+
+    // Fallback greetings based on notes activity
+    if (todayNotes && todayNotes.length > 0) {
+      return `${timeGreeting} ${userName}! I see you're already tracking today. What else is happening?`;
+    }
+
+    if (recentNotes.length > 0) {
+      return `${timeGreeting} ${userName}! How are you feeling today? Ready to check in?`;
+    }
+
+    // Ultimate fallback
+    return `${timeGreeting} ${userName}! How's your day going? Tell me what's on your mind.`;
+  };
+
   const toggleTag = (val) => setSelectedTags(t => t.includes(val) ? t.filter(x => x !== val) : [...t, val]);
 
   const saveNote = (text, tags) => {
@@ -757,12 +865,7 @@ export default function HomeScreen({ profile, cycle, notes: allNotes, addNote, t
               <span className="lilith-time">Today</span>
             </div>
             <p className="lilith-text">
-              {phase === "menstrual" && "Your body is shedding and resetting. Rest is productive right now — don't push it. Iron-rich foods and heat for cramps."}
-              {phase === "follicular" && "Energy is rising. This is your window for new projects, harder workouts, and social plans. Your brain is sharper right now."}
-              {phase === "ovulation" && "You're at your peak — physically and mentally. Your communication skills and confidence are highest today."}
-              {phase === "luteal" && cycleDay && cycleDay >= 22 && "Late luteal phase. What you're feeling has a name. Progesterone is dropping, estrogen is low. Rest, complex carbs, and be gentle with yourself."}
-              {phase === "luteal" && cycleDay && cycleDay < 22 && "Early luteal phase. A good time to wind down intensity and focus on recovery. Notice what your body needs."}
-              {!phase && "Start tracking your cycle and I'll give you daily insights based on where you are. Tap to chat with me."}
+              {generateDailyHook()}
             </p>
           </div>
         </div>

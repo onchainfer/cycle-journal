@@ -58,6 +58,10 @@ const EMPTY_CYCLE = {
 // ── APP ───────────────────────────────────────────────────────────────────────
 export default function App() {
 
+  // ── DATA MIGRATION & LOADING ─────────────────────────────────────────────────
+  
+
+
   // Load everything from localStorage on first render
   const [profile, setProfileState] = useState(() => load(KEYS.PROFILE, null));
 
@@ -70,7 +74,44 @@ export default function App() {
     return EMPTY_CYCLE;
   });
 
-  const [notes, setNotesState] = useState(() => load(KEYS.NOTES, []));
+  const [notes, setNotesState] = useState(() => {
+    const loadedNotes = load(KEYS.NOTES, []);
+    const loadedCycle = load(KEYS.CYCLE, null);
+    
+    if (!loadedCycle?.startDate) return loadedNotes;
+    
+    // Inline migration for initial load (can't use useCallback in useState)
+    let migrated = false;
+    const migratedNotes = loadedNotes.map(note => {
+      if (!note.cycleDay && note.date && loadedCycle.startDate) {
+        const noteDate = new Date(note.date);
+        const cycleStart = new Date(loadedCycle.startDate);
+        const diff = Math.floor((noteDate - cycleStart) / (1000 * 60 * 60 * 24));
+        
+        if (diff >= 0) {
+          const cycleDay = (diff % (loadedCycle.cycleLength || 28)) + 1;
+          migrated = true;
+          
+          return {
+            ...note,
+            cycleDay,
+            cyclePhase: computePhase(cycleDay),
+            cycleStartDate: loadedCycle.startDate,
+            migrated: true
+          };
+        }
+      }
+      return note;
+    });
+    
+    if (migrated) {
+      console.log('🔄 Migrated existing notes with cycle context');
+      save(KEYS.NOTES, migratedNotes);
+    }
+    
+    return migrated ? migratedNotes : loadedNotes;
+  });
+  
   const [changes, setChangesState] = useState(() => load(KEYS.CHANGES, []));
   const [cycleHistory, setCycleHistoryState] = useState(() => load(KEYS.CYCLE_HISTORY, []));
 
@@ -107,13 +148,17 @@ export default function App() {
         date: todayKey(),
         time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
         tags: [],
+        // PRESERVE CYCLE CONTEXT: Save the current cycle day at note creation
+        cycleDay: cycle?.cycleDay || null,
+        cyclePhase: cycle?.phase || null,
+        cycleStartDate: cycle?.startDate || null, // For reference/validation
         ...note,
       };
       const next = [...prev, newNote];
       save(KEYS.NOTES, next);
       return next;
     });
-  }, []);
+  }, [cycle?.cycleDay, cycle?.phase, cycle?.startDate]);
 
   // Bulk import — used by JournalScreen's import feature
   const addNotes = useCallback((newNotes) => {
@@ -156,15 +201,36 @@ export default function App() {
           ? new Date(data.fields.startDate)
           : new Date();
           
-        // Save current cycle to history if it exists and has meaningful data
-        if (cycle.startDate && cycle.cycleDay && cycle.cycleDay > 1) {
+        // IMPROVED DATA MIGRATION: Always save current cycle to history
+        if (cycle.startDate) {
+          const actualLength = cycle.cycleDay && cycle.cycleDay > 1 
+            ? cycle.cycleDay - 1 
+            : Math.max(1, Math.floor((newStart - new Date(cycle.startDate)) / (1000 * 60 * 60 * 24)));
+            
           const cycleToSave = {
-            ...cycle,
+            id: `cycle_${Date.now()}`,
+            startDate: cycle.startDate,
             endDate: newStart.toISOString(),
-            actualLength: cycle.cycleDay - 1, // Actual days in completed cycle
-            id: Date.now(),
-            archived: true
+            actualLength: actualLength,
+            cycleLength: cycle.cycleLength,
+            phase: cycle.phase,
+            flow: cycle.flow,
+            ovulationDate: cycle.ovulationDate,
+            periodEndDate: cycle.periodEndDate,
+            archived: true,
+            completedAt: new Date().toISOString(),
+            // Include cycle statistics for better tracking
+            notes: notes.filter(note => 
+              note.cycleStartDate === cycle.startDate
+            ).length
           };
+          
+          console.log('📚 Migrating cycle to history:', {
+            from: new Date(cycle.startDate).toDateString(),
+            to: newStart.toDateString(),
+            length: actualLength,
+            notesCount: cycleToSave.notes
+          });
           
           setCycleHistoryState(prev => {
             const newHistory = [...prev, cycleToSave];
@@ -173,14 +239,20 @@ export default function App() {
           });
         }
         
-        setCycle({
-          ...EMPTY_CYCLE,
+        // Start fresh cycle
+        const newCycle = {
+          id: `cycle_${Date.now()}`,
           startDate: newStart.toISOString(),
           cycleLength: cycle.cycleLength || 28,
           cycleDay: 1,
           phase: "menstrual",
-          flow: data.fields?.flow || null, // Don't default to "normal"
-        });
+          flow: data.fields?.flow || null,
+          ovulationDate: null,
+          periodEndDate: null,
+        };
+        
+        console.log('🌱 Starting new cycle:', newCycle);
+        setCycle(newCycle);
         
         addChange({
           text: `New cycle started${data.fields?.flow ? `. Flow: ${data.fields.flow}` : ''}`,
@@ -259,7 +331,16 @@ export default function App() {
 
   // ── RESET — clears everything, goes back to onboarding ────────────────────
   const handleReset = useCallback(() => {
+    // Clear main app data
     Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+    
+    // Clear report caches
+    const reportTypes = ['doctor', 'nutritionist', 'trainer'];
+    const userId = profile?.name || 'default_user';
+    reportTypes.forEach(type => {
+      localStorage.removeItem(`lilith_report_${type}_${userId}`);
+    });
+    
     setProfileState(null);
     setCycleState(EMPTY_CYCLE);
     setCycleHistoryState([]);
@@ -267,7 +348,7 @@ export default function App() {
     setChangesState([]);
     setActiveNav("home");
     setShowSettings(false);
-  }, []);
+  }, [profile?.name]);
 
   // ── TODAY'S NOTES for Lilith context ──────────────────────────────────────
   const todayNotes = notes.filter(n => n.date === todayKey());
