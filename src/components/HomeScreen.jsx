@@ -643,53 +643,62 @@ function getTime() {
   return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-export default function HomeScreen({ 
-  profile, 
-  cycle, 
+export default function HomeScreen({
+  profile,
+  cycle,
   currentCycle,
-  currentCycleDay, 
+  currentCycleDay,
+  cycleHistory,
   currentPhase,
-  notes: allNotes, 
-  addNote, 
-  todayNotes, 
-  activeNav, 
-  setActiveNav, 
-  onOpenSettings 
+  notes: allNotes,
+  addNote,
+  todayNotes,
+  activeNav,
+  setActiveNav,
+  onOpenSettings
 }) {
   const name = profile?.name || "";
 
-  // USAR EL NUEVO SISTEMA UNIFICADO - FIXED: No más "Cycle not set" para Day 29+
-  let cycleDay = currentCycleDay || cycle?.cycleDay || null;
-  let phase = currentPhase || cycle?.phase || null;
-  
-  // FIX CRÍTICO: Si no hay cycleDay pero sí hay un cycle activo, calcularlo manualmente
-  if (!cycleDay && (currentCycle || cycle)) {
-    const cycleStart = (currentCycle || cycle).startDate;
-    if (cycleStart) {
-      const today = new Date();
-      const startDate = new Date(cycleStart);
-      const diffTime = today - startDate;
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      cycleDay = diffDays + 1; // Día real del ciclo, incluso si es 29, 30, 31...
-      
-      // Calcular fase basada en el día real
-      if (cycleDay <= 5) phase = "menstrual";
-      else if (cycleDay <= 13) phase = "follicular";
-      else if (cycleDay <= 16) phase = "ovulation";
-      else phase = "luteal";
-      
-      console.log('🔧 FIX Applied - Calculated missing cycleDay:', {
-        cycleStart: new Date(cycleStart).toDateString(),
-        today: today.toDateString(),
-        calculatedDay: cycleDay,
-        calculatedPhase: phase
-      });
-    }
+  // 1. Buscamos la fecha de inicio en cualquier lugar posible del objeto
+  const rawStartDate = currentCycle?.startDate || cycle?.startDate || (cycleHistory && cycleHistory[0]?.startDate);
+
+  let cycleDay = null;
+  let phase = null;
+
+  if (rawStartDate) {
+    const today = new Date();
+    const startDate = new Date(rawStartDate);
+
+    // Normalizamos a medianoche local para evitar problemas de horas/minutos
+    const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    // Calculamos la diferencia real en milisegundos y luego en días
+    const diffInMs = todayMidnight.getTime() - startMidnight.getTime();
+    const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
+
+    cycleDay = diffInDays + 1;
+
+    // Asignación de fases (Strict Logic)
+    if (cycleDay <= 5) phase = "menstrual";
+    else if (cycleDay <= 13) phase = "follicular";
+    else if (cycleDay <= 16) phase = "ovulation";
+    else phase = "luteal";
+
+    console.log("🚀 Lilith Sync Debug:", {
+      origin: rawStartDate,
+      calculatedDay: cycleDay,
+      diffDays: diffInDays
+    });
+  } else {
+    // Si de plano no hay fecha, usamos el valor que venga del prop o null
+    cycleDay = currentCycleDay || null;
+    phase = currentPhase || null;
   }
-  
+
   const cycleDays = (currentCycle || cycle)?.cycleLength || 28;
   const progress = cycleDay ? Math.min((cycleDay / cycleDays) * 100, 100) : 0;
-  
+
   console.log('🏠 HomeScreen render:', {
     currentCycleDay,
     cycleDay,
@@ -725,10 +734,10 @@ export default function HomeScreen({
 
     // Time-based greeting variations
     const hour = new Date().getHours();
-    const timeGreeting = 
+    const timeGreeting =
       hour < 12 ? "Good morning" :
-      hour < 17 ? "Hey" :
-      hour < 21 ? "Good evening" : "Hey";
+        hour < 17 ? "Hey" :
+          hour < 21 ? "Good evening" : "Hey";
 
     // Phase-specific context
     const phaseContext = {
@@ -738,19 +747,19 @@ export default function HomeScreen({
         questions: ["How are your cramps?", "Getting enough rest?", "Need any comfort tips?"]
       },
       follicular: {
-        energy: "rising", 
+        energy: "rising",
         focus: "new projects",
         questions: ["Feeling that energy boost?", "Ready for something new?", "How's your motivation?"]
       },
       ovulation: {
         energy: "peak",
-        focus: "peak performance", 
+        focus: "peak performance",
         questions: ["Feeling confident today?", "Energy levels high?", "Social mood kicking in?"]
       },
       luteal: {
         energy: cycleDay && cycleDay >= 22 ? "low" : "moderate",
         focus: cycleDay && cycleDay >= 22 ? "PMS prep" : "winding down",
-        questions: cycleDay && cycleDay >= 22 ? 
+        questions: cycleDay && cycleDay >= 22 ?
           ["Any PMS symptoms yet?", "How's your mood?", "Need comfort strategies?"] :
           ["How's your energy today?", "Feeling any changes?", "Ready to slow down?"]
       }
@@ -759,27 +768,27 @@ export default function HomeScreen({
     // Generate contextual message based on recent notes and phase
     if (yesterdayNote) {
       const noteText = yesterdayNote.text.toLowerCase();
-      
+
       // Sleep-related
       if (noteText.includes('sleep') || noteText.includes('tired') || noteText.includes('insomnia')) {
         return `${timeGreeting} ${userName}, noticed you had trouble sleeping yesterday. How are you feeling this morning?`;
       }
-      
+
       // Pain/cramps
       if (noteText.includes('pain') || noteText.includes('cramp') || noteText.includes('hurt')) {
         return `${timeGreeting} ${userName}, saw you were dealing with pain yesterday. How are you holding up today?`;
       }
-      
+
       // Mood/anxiety
       if (noteText.includes('anxious') || noteText.includes('sad') || noteText.includes('stress')) {
         return `${timeGreeting} ${userName}, yesterday seemed tough. How's your headspace today?`;
       }
-      
+
       // Energy/fatigue
       if (noteText.includes('tired') || noteText.includes('energy') || noteText.includes('exhausted')) {
         return `${timeGreeting} ${userName}, energy was low yesterday. Feeling any better today?`;
       }
-      
+
       // Food/cravings
       if (noteText.includes('craving') || noteText.includes('hungry') || noteText.includes('food')) {
         return `${timeGreeting} ${userName}, noticed those cravings yesterday. How's your appetite today?`;
@@ -790,19 +799,19 @@ export default function HomeScreen({
     if (phase && phaseContext[phase]) {
       const context = phaseContext[phase];
       const randomQuestion = context.questions[Math.floor(Math.random() * context.questions.length)];
-      
+
       if (phase === "menstrual") {
         return `${timeGreeting} ${userName}, you're in your ${phase} phase. ${randomQuestion}`;
       }
-      
+
       if (phase === "ovulation") {
         return `${timeGreeting} ${userName}! You're at your peak today. ${randomQuestion}`;
       }
-      
+
       if (phase === "luteal" && cycleDay && cycleDay >= 22) {
         return `${timeGreeting} ${userName}, late luteal phase vibes. ${randomQuestion}`;
       }
-      
+
       return `${timeGreeting} ${userName}, you're in your ${phase} phase. ${randomQuestion}`;
     }
 
@@ -867,14 +876,10 @@ export default function HomeScreen({
                 <div className="cycle-card-top">
                   <div>
                     <div className="cycle-day-num">{cycleDay}</div>
-                    <div className="cycle-day-label">
-                      {cycleDay > cycleDays ? `Day of extended cycle` : `Day of cycle`}
-                    </div>
+                    <div className="cycle-day-label">Day of cycle</div>
                   </div>
                   <div className="cycle-phase-badge">
-                    <span className="phase-name">
-                      {cycleDay > cycleDays ? `${phase} (extended)` : phase}
-                    </span>
+                    <span className="phase-name">{phase}</span>
                     <div className="phase-dot-row">
                       {phaseDots.map((a, i) => (
                         <div key={i} className={`phase-dot ${a ? "active" : ""}`} />
@@ -885,7 +890,7 @@ export default function HomeScreen({
                 <div className="cycle-bar">
                   <div className="cycle-bar-fill" style={{ width: `${progress}%` }} />
                   {cycleDay > cycleDays && (
-                    <div className="cycle-bar-extended" style={{ 
+                    <div className="cycle-bar-extended" style={{
                       width: `${Math.min(((cycleDay - cycleDays) / 14) * 100, 100)}%`,
                       background: 'rgba(232, 180, 196, 0.3)',
                       height: '100%',
@@ -897,7 +902,7 @@ export default function HomeScreen({
                 </div>
                 <div className="cycle-bar-labels">
                   <span>Day 1</span>
-                  <span>{cycleDay > cycleDays ? `Day ${cycleDay} (${cycleDays}+${cycleDay - cycleDays})` : `Day ${cycleDays}`}</span>
+                  <span>Day {cycleDay > cycleDays ? cycleDay : cycleDays}</span>
                 </div>
               </>
             ) : (

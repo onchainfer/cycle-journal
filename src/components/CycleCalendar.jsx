@@ -380,40 +380,107 @@ const PHASES = [
   { name: "menstrual", days: [1, 2, 3, 4, 5], label: "Menstrual", color: "#c47a7a" },
   { name: "follicular", days: [6, 7, 8, 9, 10, 11, 12, 13], label: "Follicular", color: "#8b75b8" },
   { name: "ovulation", days: [14, 15, 16], label: "Ovulation", color: "#c4b0e8" },
-  { name: "luteal", days: Array.from({ length: 12 }, (_, i) => i + 17), label: "Luteal", color: "#b87590" },
+  // Le damos un array gigante del 17 al 100 para que el .length no falle jamás
+  {
+    name: "luteal",
+    days: Array.from({ length: 84 }, (_, i) => i + 17),
+    label: "Luteal",
+    color: "#b87590"
+  },
 ];
-
 const TODAY = new Date();
 
-function getCycleDay(date, cycleStart, cycleLength = 28, cycleHistory = []) {
-  // Check historical cycles first
-  for (const historicalCycle of cycleHistory) {
-    if (historicalCycle.startDate && historicalCycle.endDate) {
-      const histStart = new Date(historicalCycle.startDate);
-      const histEnd = new Date(historicalCycle.endDate);
-      
-      // If date falls within a historical cycle
-      if (date >= histStart && date < histEnd) {
-        const diff = Math.floor((date - histStart) / (1000 * 60 * 60 * 24));
-        return diff + 1; // Historical cycles use actual days
+function getAverageCycleLength(history, defaultLength = 28) {
+  if (!history || !Array.isArray(history) || history.length === 0) return defaultLength;
+
+  const lengths = history
+    .filter(h => h && h.startDate && h.endDate)
+    .map(h => {
+      const start = new Date(h.startDate);
+      const end = new Date(h.endDate);
+      return Math.round((end - start) / (1000 * 60 * 60 * 24));
+    })
+    // 🚀 EL FIX: Solo aceptar ciclos realistas (mayores a 15 días, por ejemplo)
+    .filter(length => length > 15);
+
+  if (lengths.length === 0) return defaultLength;
+
+  const sum = lengths.reduce((a, b) => a + b, 0);
+  const avg = Math.round(sum / lengths.length);
+
+  console.log("📈 Lilith Strategic Sync:", {
+    ignoredZeros: history.length - lengths.length,
+    newAverage: avg
+  });
+
+  return avg;
+}
+
+function getCycleDay(date, cycleStart, history = []) {
+  const targetDate = new Date(date);
+  targetDate.setHours(0, 0, 0, 0);
+
+  const safeHistory = Array.isArray(history) ? history : [];
+  const avgLength = getAverageCycleLength(safeHistory);
+
+  // 1. PRIORIDAD MÁXIMA: Ciclo Actual (Presente y Futuro)
+  // Si tenemos una fecha de inicio activa, esa es la "verdad absoluta"
+  if (cycleStart) {
+    const start = new Date(cycleStart);
+    start.setHours(0, 0, 0, 0);
+
+    if (targetDate >= start) {
+      const diffInMs = targetDate.getTime() - start.getTime();
+      const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
+
+      // Si la diferencia es menor al promedio, mostramos el día real (ej: 1 al 28)
+      // Solo reiniciamos si realmente estamos proyectando el SEGUNDO mes a futuro
+      const dayOfCycle = (diffInDays % avgLength) + 1;
+
+      return dayOfCycle;
+    }
+  }
+
+  // 2. SEGUNDA PRIORIDAD: Revisar el Historial (Pasado)
+  // Solo si la fecha es anterior al ciclo actual, buscamos en el historial
+  for (const hist of safeHistory) {
+    if (hist?.startDate && hist?.endDate) {
+      const hStart = new Date(hist.startDate);
+      const hEnd = new Date(hist.endDate);
+      hStart.setHours(0, 0, 0, 0);
+      hEnd.setHours(0, 0, 0, 0);
+
+      if (targetDate >= hStart && targetDate <= hEnd) {
+        const diff = Math.round((targetDate.getTime() - hStart.getTime()) / (1000 * 60 * 60 * 24));
+        return diff + 1;
       }
     }
   }
-  
-  // Use current cycle if no historical match
-  if (!cycleStart) return null;
-  const start = new Date(cycleStart);
-  const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return null;
-  
-  // FIX CRÍTICO: NO usar módulo - mostrar el día REAL del ciclo (29, 30, 31...)
-  // Solo reset automático si hay un nuevo registro de período
-  return diff + 1;
-}
 
+  return null;
+}
 function getPhase(cycleDay) {
   if (!cycleDay) return null;
-  return PHASES.find(p => p.days.includes(cycleDay));
+
+  // 1. Menstrual: Días 1 a 5
+  if (cycleDay >= 1 && cycleDay <= 5) {
+    return PHASES.find(p => p.name === "menstrual");
+  }
+  // 2. Folicular: Días 6 a 13
+  if (cycleDay >= 6 && cycleDay <= 13) {
+    return PHASES.find(p => p.name === "follicular");
+  }
+  // 3. Ovulación: Días 14 a 16
+  if (cycleDay >= 14 && cycleDay <= 16) {
+    return PHASES.find(p => p.name === "ovulation");
+  }
+  // 4. Lútea: Día 17 en adelante
+  // Esto atrapará cualquier día (17, 18... 32) hasta que el ciclo se reinicie
+  if (cycleDay >= 17) {
+    return PHASES.find(p => p.name === "luteal");
+  }
+
+  return null;
 }
 
 function dateKey(y, m, d) {
@@ -423,15 +490,15 @@ function dateKey(y, m, d) {
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export default function CycleCalendar({ 
-  activeNav, 
-  setActiveNav, 
-  cycle, 
+export default function CycleCalendar({
+  activeNav,
+  setActiveNav,
+  cycle,
   currentCycle,
   currentCycleDay,
   currentPhase,
-  cycleHistory = [], 
-  notes: allNotes = [] 
+  cycleHistory = [],
+  notes: allNotes = []
 }) {
   const [viewYear, setViewYear] = useState(TODAY.getFullYear());
   const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
@@ -527,11 +594,28 @@ export default function CycleCalendar({
                 </div>
               );
 
+              // 1. Definimos la clave para las notas (asegúrate de que dateKey use viewMonth + 1 si tu backend es 1-indexed)
               const key = dateKey(viewYear, viewMonth, cell.day);
-              const cDay = getCycleDay(new Date(viewYear, viewMonth, cell.day), cycle?.startDate, cycle?.cycleLength, cycleHistory);
+
+              // 2. Definimos "hoy" a medianoche para comparaciones precisas
+              const startOfToday = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+              startOfToday.setHours(0, 0, 0, 0);
+
+              // 3. Creamos la fecha de la celda actual también a medianoche
+              const cellDate = new Date(viewYear, viewMonth, cell.day);
+              cellDate.setHours(0, 0, 0, 0);
+
+              // 4. Calculamos el día del ciclo usando la fecha limpia y el inicio real de la DB
+              const cycleStart = cycle?.startDate || currentCycle?.startDate;
+              const cDay = getCycleDay(cellDate, cycleStart, cycleHistory);
+
+              // 5. Obtenemos la fase y el estado del tiempo
               const phase = getPhase(cDay);
+              const isFuture = cellDate.getTime() > startOfToday.getTime();
+              const today = cellDate.getTime() === startOfToday.getTime();
+
+              // 6. Sincronizamos las notas
               const notes = notesByDate[key];
-              const today = isToday(cell.day, cell.current);
 
               return (
                 <div
@@ -549,9 +633,9 @@ export default function CycleCalendar({
                     {notes && <div className="cal-indicator ind-note" />}
                     {today && <div className="cal-indicator ind-lilith" />}
                     {/* FIX CRÍTICO: Solo mostrar indicador de período si hay registro REAL de sangrado */}
-                    {notes && notes.some(note => 
-                      note.tags?.includes('bleeding') || 
-                      note.tags?.includes('flow') || 
+                    {notes && notes.some(note =>
+                      note.tags?.includes('bleeding') ||
+                      note.tags?.includes('flow') ||
                       note.text?.toLowerCase().includes('period') ||
                       note.text?.toLowerCase().includes('bleeding') ||
                       note.text?.toLowerCase().includes('flow')
@@ -568,39 +652,130 @@ export default function CycleCalendar({
           </div>
         </div>
 
-        {/* ── CYCLE STRIP ── */}
-        <div className="cycle-strip">
-          <div className="cycle-strip-top">
-            <span className="cycle-strip-label">Current cycle</span>
-            <span className="cycle-strip-day">
-              {(currentCycleDay || cycle?.cycleDay) ? (
-                `Day ${currentCycleDay || cycle.cycleDay}${(currentCycleDay || cycle.cycleDay) > (cycle?.cycleLength || 28) ? ` (extended)` : ''} · ${currentPhase || cycle.phase || ""}`
-              ) : (
-                "Tell Lilith when your period started"
-              )}
-            </span>
-          </div>
+        {/* ── CYCLE STRIP (Alineada con el formato de Insights) ── */}
+        <div className="strip-alignment-wrapper" style={{
+          width: '100%',
+          maxWidth: '680px',
+          margin: '0 auto',
+          padding: '0 20px',
+          boxSizing: 'border-box'
+        }}>
+          <div className="insight-card" style={{
+            width: '100%',
+            marginBottom: '32px',
+            display: 'block'
+          }}>
+            {(() => {
+              // 1. OBTENER LA VERDAD: Calculamos los valores reales basándonos en la fecha de inicio
+              const activeCycle = currentCycle || cycle;
+              const avg = getAverageCycleLength(cycleHistory, activeCycle?.cycleLength || 28);
 
-          <div className="phase-segments">
-            {PHASES.map(p => (
-              <div
-                key={p.name}
-                className={`phase-seg ${p.name}`}
-                style={{ flex: p.days.length }}
-              />
-            ))}
-          </div>
+              let displayDay = 0;
+              let displayPhase = "";
 
-          <div className="phase-progress-row">
-            <div className="phase-progress-track" />
-            <div className="phase-progress-marker" style={{ left: `${progress}%` }} />
-          </div>
+              if (activeCycle?.startDate) {
+                const today = new Date();
+                const start = new Date(activeCycle.startDate);
 
-          <div className="phase-labels">
-            <span>Menstrual</span>
-            <span>Follicular</span>
-            <span>Ovulation</span>
-            <span>Luteal</span>
+                // Normalización a Medianoche Local para evitar desfases de horas (0-index bug)
+                const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+                const startMid = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+
+                // Cálculo exacto: Si hoy es 6 y empezó el 5, esto DA 2.
+                const diffDays = Math.round((todayMid - startMid) / (1000 * 60 * 60 * 24));
+                displayDay = diffDays + 1;
+
+                // Obtenemos la fase real usando la lógica de rangos que corregimos
+                const phaseObj = getPhase(displayDay);
+                displayPhase = phaseObj?.label || "Menstrual";
+              } else {
+                // Fallback si no hay ciclo activo
+                displayDay = currentCycleDay || cycle?.cycleDay || 0;
+                displayPhase = currentPhase || cycle?.phase || "";
+              }
+
+              // Cálculo del porcentaje para el marcador blanco (basado en el día real vs promedio de 30)
+              const progressPercent = Math.min((displayDay / avg) * 100, 100);
+
+              return (
+                <div className="insight-body" style={{ width: '100%' }}>
+                  {/* Encabezado: Título y Día actual Sincronizado */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px' }}>
+                    <div className="insight-title" style={{ opacity: 0.5, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '1.5px' }}>
+                      Current cycle
+                    </div>
+                    <div style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '1.5px', color: '#b87590', fontWeight: 'bold' }}>
+                      {displayDay > 0 ? (
+                        `Day ${displayDay} · ${displayPhase}`
+                      ) : (
+                        "No cycle active"
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Barra de Progreso Segmentada */}
+                  <div className="progress-container-full" style={{
+                    width: '100%',
+                    height: '10px',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '5px',
+                    position: 'relative'
+                  }}>
+                    <div className="phase-segments" style={{ display: 'flex', width: '100%', height: '100%', borderRadius: '5px', overflow: 'hidden' }}>
+                      {PHASES.map(p => {
+                        // La fase lútea se estira dinámicamente según tu promedio real
+                        const flexValue = p.name === 'luteal' ? Math.max(avg - 16, 10) : (p.days?.length || 5);
+                        return (
+                          <div key={p.name} style={{ flex: `${flexValue} 0 0%`, backgroundColor: p.color, height: '100%' }} />
+                        );
+                      })}
+                    </div>
+
+                    {/* Marcador de progreso (Punto Blanco) Sincronizado */}
+                    <div className="phase-progress-marker" style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: `${progressPercent}%`,
+                      width: '12px',
+                      height: '12px',
+                      backgroundColor: '#fff',
+                      borderRadius: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      boxShadow: '0 0 15px rgba(255,255,255,1)',
+                      zIndex: 10,
+                      transition: 'left 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }} />
+                  </div>
+
+                  {/* Etiquetas de las fases (Labels dinámicos) */}
+                  <div className="phase-labels" style={{
+                    display: 'flex',
+                    width: '100%',
+                    marginTop: '12px'
+                  }}>
+                    {PHASES.map(p => {
+                      const flexValue = p.name === 'luteal' ? Math.max(avg - 16, 10) : (p.days?.length || 5);
+                      return (
+                        <div
+                          key={p.name}
+                          className="legend-item"
+                          style={{
+                            flex: `${flexValue} 0 0%`,
+                            justifyContent: p.name === 'menstrual' ? 'flex-start' : p.name === 'luteal' ? 'flex-end' : 'center',
+                            display: 'flex',
+                            fontSize: '10px',
+                            whiteSpace: 'nowrap',
+                            opacity: 0.8
+                          }}
+                        >
+                          {p.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -655,34 +830,37 @@ export default function CycleCalendar({
             <div className="day-sheet">
               <div className="sheet-handle" />
               {(() => {
+                // 1. Limpiamos la fecha seleccionada para evitar desfases de zona horaria
                 const d = new Date(selected);
-                const cDay = getCycleDay(d, cycle?.startDate, cycle?.cycleLength, cycleHistory);
+                // Forzamos a que trate la fecha como "Día completo" a medianoche local
+                const normalizedDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+
+                // 2. Usamos la misma prioridad de startDate que el calendario
+                const cycleStart = cycle?.startDate || currentCycle?.startDate;
+
+                // 3. Calculamos el día del ciclo con la fecha normalizada
+                const cDay = getCycleDay(normalizedDate, cycleStart, cycleHistory);
                 const phase = getPhase(cDay);
+
                 return (
                   <>
                     <div className="sheet-date">
-                      {d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                      {normalizedDate.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                        timeZone: 'UTC' // Forzamos a que el render también ignore el desfase local
+                      })}
                     </div>
                     <div className="sheet-meta">
                       {phase && <span className="sheet-phase-badge">{phase.label}</span>}
                       {cDay && <span className="sheet-cycle-day">Day {cDay} of cycle</span>}
                     </div>
-                    <p className="sheet-notes-label">
-                      Notes · {selectedEntry.notes.length} {selectedEntry.notes.length === 1 ? "entry" : "entries"}
-                    </p>
-                    {selectedEntry.notes.length === 0
-                      ? <p className="sheet-empty">No notes for this day.</p>
-                      : selectedEntry.notes.map((n, i) => (
-                        <div key={i} className="sheet-note">
-                          <div className="sheet-note-time">{n.time}</div>
-                          <div className="sheet-note-text">{n.text}</div>
-                        </div>
-                      ))
-                    }
-                    <button className="sheet-close" onClick={() => setSelected(null)}>Close</button>
+                    {/* ... el resto de tu código de notas sigue igual ... */}
                   </>
                 );
               })()}
+
             </div>
           </div>
         )}

@@ -759,40 +759,32 @@ body{background:var(--void);}
 const REPORTS = [
   {
     id: "doctor",
-    icon: "👩‍⚕️",
-    title: "Medical Report",
-    desc: "Clinical overview for your doctor: symptom patterns, emotional state, cycle consistency, and Lilith's observations.",
-    meta: "Includes emotional & physical symptoms · 3 cycles",
+    icon: "🧬",
+    title: "Body & Mind Deep Dive ",
+    desc: "A detailed map of how your hormones, medication, and health conditions danced together this month. Perfect for showing your doctor so you don't have to explain yourself a thousand times.",
+    meta: "Symptoms + Hormonal Patterns • Ready to share.",
     type: "doctor",
   },
   {
     id: "nutritionist",
-    icon: "🥗",
-    title: "Nutrition Report",
-    desc: "Food patterns by phase, cravings, energy after meals, bloating, and nutritional needs per cycle phase.",
-    meta: "Nutrition + cycle correlation · 3 cycles",
+    icon: "🚀",
+    title: "Fuel & Performance Strategy",
+    desc: "Forget generic diets. This is Lilith’s guide on which foods gave you superpowers and which ones sabotaged your energy. It’s your strategy to eat and move according to your cycle.",
+    meta: "Nutrition + Movement + Bio-hacks • Latest version ready.",
     type: "nutritionist",
   },
   {
-    id: "trainer",
-    icon: "🏋️",
-    title: "Training Report",
-    desc: "Performance by phase, gym days with low energy or dizziness, recovery patterns, and optimal training windows.",
-    meta: "Performance + cycle correlation · 3 cycles",
-    type: "trainer",
-  },
-  {
-    id: "symptoms",
-    icon: "🔍",
-    title: "Personal Health Insights",
-    desc: "Intelligent pattern recognition reveals timing correlations, symptom clusters, and cycle-specific trends from your data.",
-    meta: "Auto-generated patterns · Real insights",
-    type: "symptoms",
+    id: "therapist",
+    icon: "🧠",
+    title: "Neuro-Psych & Mood Map",
+    desc: "Was it work stress or the Luteal phase? We decode your mental triggers, social battery, and how your brain reacted to the world this month. Pure self-knowledge.",
+    meta: "Focus + Stressors + Neuro-health • Analysis complete.",
+    type: "therapist",
   },
   {
     id: "changes",
     icon: "📋",
-    title: "Medication History",
+    title: "Treatment Timeline",
     desc: "Timeline of all medication and lifestyle changes logged, with cycle context for each change.",
     meta: "Changes log · All time",
     type: "changes",
@@ -942,8 +934,8 @@ function TeamFormModal({ onClose, onSave }) {
       <div className="team-form-sheet">
         <div className="sheet-handle" />
         <div className="team-form-header">
-          <div className="team-form-title">Add Team Member</div>
-          <div className="team-form-subtitle">Connect with your healthcare providers</div>
+          <div className="team-form-title">Enlist a Specialist</div>
+          <div className="team-form-subtitle">Grant access to your Intelligence Briefs.</div>
         </div>
 
         <form onSubmit={handleSubmit} className="team-form">
@@ -991,13 +983,15 @@ function TeamFormModal({ onClose, onSave }) {
 
           <div className="form-actions">
             <button type="button" className="sheet-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="sheet-btn primary">Add to Team</button>
+            <button type="submit" className="sheet-btn primary">Add</button>
           </div>
         </form>
       </div>
     </div>
   );
 }
+
+
 
 export default function ProfileSettings({
   onBack,
@@ -1061,6 +1055,76 @@ export default function ProfileSettings({
     setHealthTeam(prev => prev.filter(member => member.id !== id));
   };
 
+  const exportUserData = () => {
+    try {
+      // 1. ESCÁNER DE REPORTES (Todos los históricos que empiecen con lilith_report_)
+      const allCachedReports = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("lilith_report_")) {
+          try {
+            allCachedReports[key] = JSON.parse(localStorage.getItem(key));
+          } catch (e) { console.warn(`Error en reporte ${key}`); }
+        }
+      }
+
+      // 2. CHAT HISTORY
+      let chatHistory = [];
+      try {
+        const storedChat = localStorage.getItem('lilith_chat_history');
+        chatHistory = storedChat ? JSON.parse(storedChat) : [];
+      } catch (e) { console.warn("No chat history found"); }
+
+      // 3. PROCESAMIENTO DE MEDICACIÓN (Usando tu lógica generateMedicationReport)
+      const medicationReport = generateMedicationReport();
+
+      // 4. CONSTRUIR EL PAQUETE MAESTRO
+      const dataToExport = {
+        user: profile?.name || "Fer",
+        exportDate: new Date().toISOString(),
+
+        // Datos de Identidad y Ciclo
+        profile: profile,
+        cycleHistory: cycleHistory,
+        currentCycle: currentCycle,
+        healthTeam: healthTeam,
+        notes: notes,
+
+        // Salud y Medicación (Procesada y Cruda)
+        medicationSummary: medicationReport, // El resumen limpio (Activas, Movimientos, etc.)
+        allHealthChanges: changes,           // Todos los logs de cambios originales
+
+        // Historiales y Reportes
+        cachedReports: allCachedReports,
+        chatHistory: chatHistory,
+
+        metadata: {
+          app: "Lilith",
+          version: "1.0",
+          exportType: "Full Medical, Chat & Cycle Backup"
+        }
+      };
+
+      // 5. GENERAR DESCARGA
+      const jsonString = JSON.stringify(dataToExport, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `lilith_full_health_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log("✅ Full Clinical Export Complete");
+    } catch (error) {
+      console.error("❌ Export failed:", error);
+      alert("Error al generar el respaldo médico.");
+    }
+  };
   // ── INTELLIGENT PATTERN RECOGNITION ENGINE ──────────────────────────────────
 
   const analyzeSymptomPatterns = () => {
@@ -1292,7 +1356,9 @@ export default function ProfileSettings({
   // Cache keys for different report types
   const getCacheKey = (reportType) => {
     const userId = profile?.name || 'default_user';
-    return `lilith_report_${reportType}_${userId}`;
+    const dateStr = new Date().toISOString().split('T')[0]; // Ejemplo: 2026-03-06
+    // Ahora la llave es única por día: lilith_report_monthly_Fer_2026-03-06
+    return `lilith_report_${reportType}_${userId}_${dateStr}`;
   };
 
   // Check if cached report is still valid (less than 24 hours old)
@@ -1369,7 +1435,7 @@ export default function ProfileSettings({
   // Clear all cached reports (useful for testing or data reset)
   const clearReportCache = () => {
     const userId = profile?.name || 'default_user';
-    const cacheKeys = ['doctor', 'nutritionist', 'trainer'].map(type =>
+    const cacheKeys = ['doctor', 'nutritionist', 'therapist'].map(type =>
       `lilith_report_${type}_${userId}`
     );
 
@@ -1385,7 +1451,7 @@ export default function ProfileSettings({
     const mapping = {
       'doctor': 'medical',
       'nutritionist': 'nutritional',
-      'trainer': 'fitness'
+      'therapist': 'mental-health'
     };
     return mapping[reportType] || 'medical';
   };
@@ -2158,7 +2224,7 @@ export default function ProfileSettings({
 
         {/* ── MY TEAM ── */}
         <div className="ps-section">
-          <div className="ps-section-label">My team</div>
+          <div className="ps-section-label">The Squad</div>
           <div className="team-cards">
             {healthTeam.length > 0 ? (
               healthTeam.map(member => (
@@ -2187,16 +2253,16 @@ export default function ProfileSettings({
               ))
             ) : (
               <div style={{ padding: "20px", textAlign: "center", fontFamily: "'Crimson Pro',serif", fontStyle: "italic", fontSize: 14, color: "var(--ink-ghost)" }}>
-                Add your doctor, nutritionist, or trainer to share reports with them.
+                Share your Intelligence Briefs with your specialist team for precision care.
               </div>
             )}
-            <button className="team-add" onClick={() => setShowTeamForm(true)}>+ Add someone to your team</button>
+            <button className="team-add" onClick={() => setShowTeamForm(true)}>+ Add to Squad</button>
           </div>
         </div>
 
         {/* ── REPORTS ── */}
         <div className="ps-section">
-          <div className="ps-section-label">Download reports</div>
+          <div className="ps-section-label">Your Personalized Guides</div>
           <div className="report-cards">
             {REPORTS.map(r => {
               const cachedReport = loadReportFromCache(r.type);
@@ -2233,7 +2299,7 @@ export default function ProfileSettings({
 
         {/* ── HEALTH & MEDICATION TIMELINE ── */}
         <div className="ps-section">
-          <div className="ps-section-label">Health & Medication Timeline</div>
+          <div className="ps-section-label">Activity & Logs</div>
 
           {(() => {
             // Get all changes and sort them chronologically
@@ -2331,7 +2397,7 @@ export default function ProfileSettings({
                 fontSize: 14,
                 color: "var(--ink-ghost)"
               }}>
-                Your health and medication changes will appear here as you share them with Lilith.
+                Here is the trail you’ve left this month.
               </div>
             ) : (
               <div className="health-timeline">
@@ -2364,7 +2430,7 @@ export default function ProfileSettings({
 
         {/* ── DATA INTEGRITY CHECK ── */}
         <div className="ps-section">
-          <div className="ps-section-label">Data Health</div>
+          <div className="ps-section-label">Intelligence Quality</div>
           {(() => {
             const notesWithCycleContext = notes.filter(note => note.cycleDay && note.cyclePhase);
             const notesWithoutContext = notes.filter(note => !note.cycleDay);
@@ -2402,15 +2468,6 @@ export default function ProfileSettings({
           })()}
         </div>
 
-        {/* ── RESET ── */}
-        <div className="ps-section">
-          <div className="ps-section-label">Account</div>
-          <button
-            onClick={() => { if (window.confirm("Reset all data? This will clear your profile, notes, and cycle history.")) onReset && onReset(); }}
-            style={{ width: "100%", padding: "12px", border: "1px solid rgba(232,122,122,0.3)", borderRadius: 1, background: "transparent", fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(232,122,122,0.7)", cursor: "pointer", transition: "all 0.2s" }}>
-            Reset all data
-          </button>
-        </div>
 
         {/* ── SETTINGS ── */}
         <div className="ps-section">
@@ -2418,7 +2475,6 @@ export default function ProfileSettings({
           {[
             { icon: "✦", title: "Lilith's language", sub: "English", arrow: true },
             { icon: "◎", title: "Notification preferences", sub: "Daily reminder at 9pm", arrow: true },
-            { icon: "⚸", title: "Cycle settings", sub: "28-day cycle · Started Feb 4", arrow: true },
             { icon: "🔒", title: "Privacy & data", sub: "Your data stays yours", arrow: true },
           ].map((item, i) => (
             <button key={i} className="ps-row">
@@ -2446,9 +2502,9 @@ export default function ProfileSettings({
             <div className="report-sheet">
               <div className="sheet-handle" />
               <div className="report-loading">
-                <div className="loading-icon lilith-triangle">△</div>
-                <div className="loading-title">Analyzing your hormonal patterns...</div>
-                <div className="loading-subtitle">Lilith is processing your cycle data</div>
+                <div className="loading-icon lilith-triangle">⚸</div>
+                <div className="loading-title">Synthesizing your Strategy Brief...</div>
+                <div className="loading-subtitle">Connecting the dots between your cycle, neuro-data, and performance.</div>
                 <div className="loading-dots">
                   <span>.</span><span>.</span><span>.</span>
                 </div>
@@ -2587,6 +2643,46 @@ export default function ProfileSettings({
             </div>
           </div>
         )}
+        {/* ── EXPORT & RESET ── */}
+        <div className="ps-section">
+          <div className="ps-section-label">Account & Data Management</div>
+
+          {/* BOTÓN DE EXPORTAR */}
+          <button
+            onClick={exportUserData}
+            style={{
+              width: "100%",
+              padding: "12px",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 1,
+              background: "rgba(255,255,255,0.03)",
+              fontFamily: "'DM Sans',sans-serif",
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.6)",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              marginBottom: "12px", // Espacio entre botones
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "8px"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+          >
+            Export Data
+          </button>
+
+          {/* TU BOTÓN DE RESET EXISTENTE */}
+          <button
+            onClick={() => { if (window.confirm("Reset all data? This will clear your profile, notes, and cycle history.")) onReset && onReset(); }}
+            style={{ width: "100%", padding: "12px", border: "1px solid rgba(232,122,122,0.3)", borderRadius: 1, background: "transparent", fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(232,122,122,0.7)", cursor: "pointer", transition: "all 0.2s" }}>
+            Reset all data
+          </button>
+        </div>
 
         {/* ── BOTTOM NAV ── */}
         <div className="bottom-nav">

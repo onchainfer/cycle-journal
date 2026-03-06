@@ -922,7 +922,7 @@ export default function LilithChatWithTriggers({
 
                         // 🛡️ REGLA DE ORO: Preservar array existente
                         let updatedMedications = [...(prevProfile.medications || [])];
-                        
+
                         console.log('💊 SPREAD OPERATOR applied - PRESERVATION CONFIRMED:', {
                             originalCount: prevProfile.medications?.length || 0,
                             copiedCount: updatedMedications.length,
@@ -931,25 +931,25 @@ export default function LilithChatWithTriggers({
 
                         // 💊 UPSERT LOGIC: Case-insensitive comparison
                         const normalizedName = medicationForm.name.toLowerCase().trim();
-                        
+
                         const findExistingIndex = (meds, name) => {
                             return meds.findIndex(med => {
                                 const medName = typeof med === 'string' ? med : med.name;
                                 return medName.toLowerCase().trim() === name.toLowerCase().trim() &&
-                                       (!med.status || med.status === 'active');
+                                    (!med.status || med.status === 'active');
                             });
                         };
 
                         if (medicationForm.action === 'add') {
                             // 💊 UPSERT: Check if medication already exists
                             const existingIndex = findExistingIndex(updatedMedications, normalizedName);
-                            
+
                             if (existingIndex !== -1) {
                                 // UPDATE: Actualizar dosis del existente
                                 console.log('💊 UPSERT: Medication exists, updating dose');
                                 updatedMedications[existingIndex] = {
-                                    ...(typeof updatedMedications[existingIndex] === 'string' 
-                                        ? { name: updatedMedications[existingIndex] } 
+                                    ...(typeof updatedMedications[existingIndex] === 'string'
+                                        ? { name: updatedMedications[existingIndex] }
                                         : updatedMedications[existingIndex]),
                                     dose: medicationForm.dose,
                                     status: 'active',
@@ -970,7 +970,7 @@ export default function LilithChatWithTriggers({
                         }
                         else if (medicationForm.action === 'change') {
                             console.log('💊 DOSE CHANGE - BEFORE MAP');
-                            
+
                             // Mark current medication as inactive and add new version
                             updatedMedications = updatedMedications.map(med => {
                                 const medName = typeof med === 'string' ? med : med.name;
@@ -993,7 +993,7 @@ export default function LilithChatWithTriggers({
                                 reason: `Dose change: ${medicationForm.reason || 'not specified'}`,
                                 previousDose: true
                             });
-                            
+
                             console.log('💊 DOSE CHANGE - COMPLETED:', {
                                 finalCount: updatedMedications.length,
                                 newMedAdded: updatedMedications[updatedMedications.length - 1]
@@ -1027,7 +1027,7 @@ export default function LilithChatWithTriggers({
                             medicationName: medicationForm.name,
                             totalMedications: updatedMedications.length,
                             activeMedications: activeMeds.length,
-                            onboardingMedsPreserved: updatedMedications.some(m => 
+                            onboardingMedsPreserved: updatedMedications.some(m =>
                                 !m.startDate || new Date(m.startDate) < new Date(todayDateString)
                             ),
                             fullArray: updatedMedications
@@ -1228,20 +1228,20 @@ export default function LilithChatWithTriggers({
                 /```json\s*\{[\s\S]*?\}\s*```/gi,
                 /```\s*\{[\s\S]*?\}\s*```/gi,
                 /`\{[\s\S]*?\}`/gi,
-                
+
                 // Raw JSON objects (with and without intent)
                 /\{[\s\S]*?"intent"[\s\S]*?\}/gi,
                 /\{[\s\S]*?"action"[\s\S]*?\}/gi,
                 /\{[\s\S]*?"type"[\s\S]*?\}/gi,
                 /\{[^{}]*"[^"]*"[^{}]*\}/gi,
-                
+
                 // ANY content between curly braces that looks technical
                 /\{[^{}]*\}/g,
-                
+
                 // Action-like patterns
                 /action:\s*\{[^}]*\}/gi,
                 /intent:\s*\{[^}]*\}/gi,
-                
+
                 // Leftover technical artifacts
                 /\[object Object\]/gi,
                 /undefined/gi,
@@ -1261,7 +1261,7 @@ export default function LilithChatWithTriggers({
                             if (!detectedIntent && (match.includes('"intent"') || match.includes('"action"'))) {
                                 let jsonText = match.replace(/```json\s*|\s*```|`/g, '');
                                 const intentData = JSON.parse(jsonText);
-                                
+
                                 if (intentData.intent) {
                                     detectedIntent = intentData;
                                 }
@@ -1269,7 +1269,7 @@ export default function LilithChatWithTriggers({
                         } catch (parseError) {
                             // Doesn't matter if parsing fails - we remove it anyway
                         }
-                        
+
                         // ALWAYS remove technical content from user-visible response
                         cleanResponse = cleanResponse.replace(match, '').trim();
                     }
@@ -1406,7 +1406,7 @@ export default function LilithChatWithTriggers({
                 // Log para debugging de medicaciones
                 debugMedications: true
             };
-            
+
             // Debug log para verificar medicaciones
             console.log('🧠 Lilith Context - Medications:', {
                 profileMedications: profile?.medications,
@@ -1596,30 +1596,36 @@ export default function LilithChatWithTriggers({
                         </div>
                         <div className="chat-context-pill">
                             {(() => {
-                                // FIX CRÍTICO: Usar misma lógica que Home - calcular Hoy - LastPeriodDate
-                                let displayCycleDay = cycle.cycleDay || currentCycleDay;
-                                let displayPhase = cycle.phase || currentPhase;
-                                
-                                // Si no hay cycleDay pero sí hay ciclo activo, calcularlo
-                                if (!displayCycleDay && (currentCycle || cycle)) {
-                                    const cycleStart = (currentCycle || cycle).startDate;
-                                    if (cycleStart) {
-                                        const today = new Date();
-                                        const startDate = new Date(cycleStart);
-                                        const diffTime = today - startDate;
-                                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                        displayCycleDay = diffDays + 1; // Día real incluso si es 29+
-                                        
-                                        // Calcular fase
-                                        if (displayCycleDay <= 5) displayPhase = "menstrual";
-                                        else if (displayCycleDay <= 13) displayPhase = "follicular";
-                                        else if (displayCycleDay <= 16) displayPhase = "ovulation";
-                                        else displayPhase = "luteal";
-                                    }
+                                // 1. Establish initial values from props/state
+                                let displayCycleDay = cycle?.cycleDay || currentCycleDay;
+                                let displayPhase = cycle?.phase || currentPhase;
+
+                                const activeCycle = currentCycle || cycle;
+
+                                // 2. FORCE RE-CALCULATION if we have a startDate (to ignore hours/minutes)
+                                if (activeCycle?.startDate) {
+                                    const today = new Date();
+                                    const start = new Date(activeCycle.startDate);
+
+                                    // Normalize both to Midnight Local Time to compare calendar dates
+                                    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                    const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+
+                                    // Calculate difference in full 24h days
+                                    const diffMs = todayMidnight.getTime() - startMidnight.getTime();
+                                    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+                                    displayCycleDay = diffDays + 1; // Correctly results in Day 2 the next calendar day
+
+                                    // 3. Update Phase based on the new day
+                                    if (displayCycleDay <= 5) displayPhase = "menstrual";
+                                    else if (displayCycleDay <= 13) displayPhase = "follicular";
+                                    else if (displayCycleDay <= 16) displayPhase = "ovulation";
+                                    else displayPhase = "luteal";
                                 }
-                                
-                                return displayCycleDay 
-                                    ? `Day ${displayCycleDay} · ${displayPhase || ""}` 
+
+                                return displayCycleDay
+                                    ? `Day ${displayCycleDay} · ${displayPhase || ""}`
                                     : "Tell me when your period started";
                             })()}
                         </div>
@@ -1646,16 +1652,16 @@ export default function LilithChatWithTriggers({
                             )}
                             {profile.medications && (() => {
                                 // FIX CRÍTICO: Filtrar solo medicaciones ACTIVAS para display
-                                const activeMeds = Array.isArray(profile.medications) 
+                                const activeMeds = Array.isArray(profile.medications)
                                     ? profile.medications.filter(m => !m.status || m.status === 'active')
                                     : [];
-                                
+
                                 const displayText = typeof profile.medications === "string"
                                     ? profile.medications
                                     : activeMeds.length > 0
                                         ? activeMeds.map(m => typeof m === "string" ? m : `${m.name}${m.dose ? ` (${m.dose})` : ''}`).join(", ")
                                         : null;
-                                
+
                                 // Debug log
                                 console.log('💊 CONTEXT DISPLAY - Medications:', {
                                     total: profile.medications.length,
@@ -1663,7 +1669,7 @@ export default function LilithChatWithTriggers({
                                     displayText,
                                     fullArray: profile.medications
                                 });
-                                
+
                                 return displayText ? (
                                     <span className="context-pill">
                                         {displayText}
