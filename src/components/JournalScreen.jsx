@@ -91,6 +91,23 @@ body{background:var(--void);}
 .day-tag.physical{border-color:rgba(232,180,196,0.25);color:var(--blossom-dim);}
 .day-tag.emotional{border-color:rgba(196,176,232,0.25);color:var(--lav-dim);}
 .day-tag.energy{border-color:rgba(212,184,150,0.25);color:var(--gold);}
+/* Food: Menta tenue */
+.day-tag.food {
+  border-color: rgba(180, 232, 210, 0.25);
+  color: #a3d4c0;
+}
+
+/* Movement: Azul deportivo tenue */
+.day-tag.movement {
+  border-color: rgba(180, 212, 232, 0.25);
+  color: #a3c1d4;
+}
+
+/* Meds: Coral tenue */
+.day-tag.meds {
+  border-color: rgba(232, 122, 122, 0.25);
+  color: #d16e6e;
+}
 .day-right{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:4px;}
 .day-note-count{font-size:10px;color:var(--ink-ghost);}
 .day-has-lilith{width:6px;height:6px;border-radius:50%;background:var(--lav);opacity:0.6;}
@@ -185,6 +202,35 @@ body{background:var(--void);}
 .modal-tag.active.physical{border-color:rgba(232,180,196,0.4);color:var(--blossom);background:rgba(232,180,196,0.06);}
 .modal-tag.active.emotional{border-color:rgba(196,176,232,0.4);color:var(--lav);background:rgba(196,176,232,0.06);}
 .modal-tag.active.energy{border-color:rgba(212,184,150,0.4);color:var(--gold);background:rgba(212,184,150,0.06);}
+/* --- NUEVOS TAGS PARA SELECCIÓN --- */
+
+/* Food: Un verde suave/menta */
+.modal-tag.active.food {
+  border-color: rgba(180, 232, 210, 0.4);
+  color: #b4e8d2;
+  background: rgba(180, 232, 210, 0.06);
+}
+
+/* Movement: Un azul cian/deportivo */
+.modal-tag.active.movement {
+  border-color: rgba(180, 212, 232, 0.4);
+  color: #b4d4e8;
+  background: rgba(180, 212, 232, 0.06);
+}
+
+/* Meds: Un coral/rosado fuerte (importante para resaltar medicación) */
+.modal-tag.active.meds {
+  border-color: rgba(232, 122, 122, 0.4);
+  color: #e87a7a;
+  background: rgba(232, 122, 122, 0.06);
+}
+
+/* OPCIONAL: Un estilo genérico por si agregas más tags en el futuro */
+.modal-tag.active {
+  border-color: var(--border-active);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+}
 .modal-actions{display:flex;gap:8px;margin-top:4px;}
 .modal-btn{flex:1;padding:13px;border:1px solid var(--border);border-radius:1px;background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-ghost);cursor:pointer;transition:all 0.2s;}
 .modal-btn:hover{border-color:var(--border-hover);}
@@ -222,7 +268,7 @@ function getCycleDay(date, cycleStart, cycleLength = 28) {
   const start = new Date(cycleStart);
   const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
   if (diff < 0) return null;
-  
+
   // CORREGIDO: No usar módulo, calcular día real del ciclo actual
   return diff + 1;
 }
@@ -281,7 +327,7 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
       const monthName = monthDay[1].toLowerCase().replace('_', '');
       const mo = MONTHS[monthName];
       const dy = parseInt(monthDay[2]);
-      
+
       if (mo !== undefined && dy >= 1 && dy <= 31) {
         date = new Date(currentYear, mo, dy);
         text = monthDay[3].trim();
@@ -294,9 +340,9 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
       const numDate = line.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?[,\-—:\s]+(.+)/);
       if (numDate) {
         const a = parseInt(numDate[1]);
-        const b = parseInt(numDate[2]); 
+        const b = parseInt(numDate[2]);
         const year = numDate[3] ? parseInt(numDate[3]) : currentYear;
-        
+
         // Si hay año, asumir dd/mm/yyyy, sino m/d
         if (numDate[3]) {
           // Format: dd/mm/yyyy
@@ -335,15 +381,15 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
     let cycleDay = null;
     let cyclePhase = null;
     let cycleId = null;
-    
+
     if (cycleStart) {
       cycleDay = getCycleDay(date, cycleStart, cycleLength);
       cyclePhase = getPhase(cycleDay);
-      
+
       // Generar cycleId basado en el ciclo start
       const startDate = new Date(cycleStart);
       cycleId = `cycle_${startDate.getFullYear()}_${String(startDate.getMonth() + 1).padStart(2, '0')}_${String(startDate.getDate()).padStart(2, '0')}`;
-      
+
       console.log(`🧮 Calculated for ${date.toDateString()}: Day ${cycleDay}, Phase: ${cyclePhase}`);
     }
 
@@ -365,16 +411,16 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
       time: "imported",
       text,
       tags: [...new Set(tags)],
-      
+
       // DATOS DEL CICLO CALCULADOS
       cycleDay,
-      cyclePhase, 
+      cyclePhase,
       cycleId,
       cycleStartDate: cycleStart, // Para referencia
-      
+
       // TIMESTAMP CORRECTO: fecha de la nota, NO fecha de hoy
       createdAt: date.toISOString(), // ← ESTO ERA EL PROBLEMA PRINCIPAL
-      
+
       // Metadata de importación
       imported: true,
       importedAt: new Date().toISOString()
@@ -386,34 +432,34 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
 
   const sorted = results.sort((a, b) => a.date.localeCompare(b.date));
   console.log(`🎯 Parse complete: ${sorted.length} entries created`);
-  
+
   return sorted;
 }
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function JournalScreen({ 
-  activeNav, 
-  setActiveNav, 
-  notes: allNotes = [], 
-  addNote, 
-  addNotes, 
-  deleteNote: deleteNoteGlobal, 
+export default function JournalScreen({
+  activeNav,
+  setActiveNav,
+  notes: allNotes = [],
+  addNote,
+  addNotes,
+  deleteNote: deleteNoteGlobal,
   cycle,
   currentCycle,
   currentCycleDay,
   currentPhase
 }) {
   const today = new Date();
-  
+
   // Calcular rango dinámico basado en las notas existentes
   let rangeStart = new Date(today);
   rangeStart.setDate(today.getDate() - 90); // Default: 90 días
-  
+
   // Si hay notas, extender el rango para incluir la más antigua
   if (allNotes && allNotes.length > 0) {
     const oldestNoteDate = Math.min(...allNotes.map(n => new Date(n.date).getTime()));
     const calculatedStart = new Date(oldestNoteDate);
-    
+
     // Usar la fecha más antigua entre las dos
     if (calculatedStart < rangeStart) {
       rangeStart = calculatedStart;
@@ -432,7 +478,7 @@ export default function JournalScreen({
   (allNotes || []).forEach(n => {
     if (!notesByDate[n.date]) notesByDate[n.date] = [];
     notesByDate[n.date].push(n);
-    
+
     // Debug logging para verificar que las notas tienen cycleDayText fijo
     if (n.cycleDayText || n.cycleDay) {
       console.log('📋 Journal Note with cycle data:', {
@@ -462,8 +508,17 @@ export default function JournalScreen({
   const totalNotes = allNotes.length;
   const daysWithNotes = Object.keys(notesByDate).length;
 
-  const toggleNoteTag = (t) =>
-    setNoteTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  const toggleNoteTag = (t) => {
+    setNoteTags((prev) => {
+      // Protección: si por algo 'prev' no es array, lo volvemos uno
+      const currentTags = Array.isArray(prev) ? prev : [];
+      if (currentTags.includes(t)) {
+        return currentTags.filter((x) => x !== t);
+      } else {
+        return [...currentTags, t];
+      }
+    });
+  };
 
   const saveNote = () => {
     if (!noteText.trim() || !showAddNote) return;
@@ -486,22 +541,22 @@ export default function JournalScreen({
   const parseImport = () => {
     if (!importText.trim()) return;
     setImportLoading(true);
-    
+
     setTimeout(() => {
       // Pasar contexto del ciclo para calcular cycleDay correctamente
       const cycleStartDate = (currentCycle || cycle)?.startDate;
       const cycleLengthValue = (currentCycle || cycle)?.cycleLength || 28;
-      
+
       console.log('🔄 Starting import parse with cycle context:', {
         cycleStartDate: cycleStartDate ? new Date(cycleStartDate).toDateString() : 'none',
         cycleLength: cycleLengthValue,
         sampleText: importText.slice(0, 100) + '...'
       });
-      
+
       const parsed = parseImportText(importText, cycleStartDate, cycleLengthValue);
       setImportParsed(parsed);
       setImportLoading(false);
-      
+
       console.log('✅ Import parsing completed:', {
         totalEntries: parsed.length,
         withCycleDays: parsed.filter(p => p.cycleDay).length,
@@ -515,7 +570,7 @@ export default function JournalScreen({
       console.warn('❌ No parsed entries to import');
       return;
     }
-    
+
     console.log('💾 Saving imported entries:', {
       count: importParsed.length,
       method: addNotes ? 'bulk' : 'individual',
@@ -525,19 +580,19 @@ export default function JournalScreen({
         text: e.text.slice(0, 30) + '...'
       }))
     });
-    
+
     // Guardar usando el método disponible
     if (addNotes) {
       addNotes(importParsed);
     } else if (addNote) {
       importParsed.forEach(entry => addNote(entry));
     }
-    
+
     // Limpiar estado
     setShowImport(false);
     setImportText("");
     setImportParsed(null);
-    
+
     console.log('✅ Import completed successfully');
   };
 
@@ -545,21 +600,21 @@ export default function JournalScreen({
   if (selectedDay) {
     const dayNotes = (notesByDate[selectedDay] || []).sort((a, b) => a.time.localeCompare(b.time));
     const d = new Date(selectedDay + "T12:00:00");
-    
+
     // FIX CRÍTICO: Usar Day Tag FIJO de las notas guardadas, no recalcular
     const notesWithCycleData = dayNotes.filter(note => note.cycleDayText || note.cycleDay);
-    const fixedCycleDayText = notesWithCycleData.length > 0 
+    const fixedCycleDayText = notesWithCycleData.length > 0
       ? (notesWithCycleData[0].cycleDayText || `Day ${notesWithCycleData[0].cycleDay}`)
       : null;
     const fixedCyclePhase = notesWithCycleData.length > 0 ? notesWithCycleData[0].cyclePhase : null;
-    
+
     // Fallback solo si no hay notas con cycle data guardado
     const cDay = fixedCycleDayText ? null : getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
     const phase = fixedCyclePhase || getPhase(cDay);
-    
+
     const isToday = selectedDay === dateKey(today);
     const isFuture = d > today;
-    
+
     console.log('📅 Day View - Using FIXED cycle data:', {
       selectedDay,
       fixedCycleDayText,
@@ -640,9 +695,28 @@ export default function JournalScreen({
                 <textarea className="modal-textarea" placeholder="What did you notice? How did your body feel?" value={noteText} onChange={e => setNoteText(e.target.value)} />
                 <div className="modal-label">Tags</div>
                 <div className="modal-tags">
-                  {TAG_OPTIONS.map(t => (
-                    <button key={t} className={`modal-tag ${noteTags.includes(t) ? `active ${t}` : ""}`} onClick={() => toggleNoteTag(t)}>{t}</button>
-                  ))}
+                  {TAG_OPTIONS.map(t => {
+                    const isActive = Array.isArray(noteTags) && noteTags.includes(t);
+                    return (
+                      <div
+                        key={t}
+                        className={`modal-tag ${isActive ? `active ${t}` : ""}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation(); // 👈 Esto detiene cualquier interferencia del modal
+                          toggleNoteTag(t);
+                        }}
+                        style={{
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          WebkitTapHighlightColor: 'transparent', // Mejora para móviles
+                          pointerEvents: 'auto' // Forzamos que reciba eventos
+                        }}
+                      >
+                        {t}
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="modal-actions">
                   <button className="modal-btn" onClick={() => setShowAddNote(null)}>Cancel</button>
@@ -676,16 +750,16 @@ export default function JournalScreen({
     else if (d >= lastWeekStart) groupedDays["Last week"].push(d);
     else groupedDays["Earlier"].push(d);
   });
-  
+
   // ORDENAR dentro de cada grupo para cronología correcta
   // Más reciente primero en cada sección
   Object.keys(groupedDays).forEach(key => {
     groupedDays[key].sort((a, b) => b.getTime() - a.getTime());
   });
-  
+
   console.log('📊 Grouped days for display:', {
     thisWeek: groupedDays["This week"].length,
-    lastWeek: groupedDays["Last week"].length, 
+    lastWeek: groupedDays["Last week"].length,
     earlier: groupedDays["Earlier"].length,
     earliestDate: groupedDays["Earlier"][groupedDays["Earlier"].length - 1]?.toDateString()
   });
@@ -736,30 +810,26 @@ export default function JournalScreen({
               {days.map(d => {
                 const key = dateKey(d);
                 const dayNotes = notesByDate[key] || [];
-                
-                // FIX CRÍTICO: Usar cycle day FIJO de las notas guardadas, NO calcular dinámicamente
+
+                // 1. CÁLCULO DINÁMICO REAL (Sincronizado con el resto de la app)
+                const activeCycle = currentCycle || cycle;
+                const calcCycleDay = getCycleDay(d, activeCycle?.startDate, activeCycle?.cycleLength);
+
+                // 2. PRIORIDAD: Si el cálculo dinámico da un día válido (>0), lo usamos.
+                // Solo usamos el texto guardado si no hay ciclo activo.
                 const notesWithCycleData = dayNotes.filter(note => note.cycleDayText || note.cycleDay);
-                const fixedCycleDayText = notesWithCycleData.length > 0 
+                const savedDayText = notesWithCycleData.length > 0
                   ? (notesWithCycleData[0].cycleDayText || `Day ${notesWithCycleData[0].cycleDay}`)
                   : null;
-                const fixedCyclePhase = notesWithCycleData.length > 0 ? notesWithCycleData[0].cyclePhase : null;
-                
-                // Solo calcular si NO hay datos guardados (fallback para notas sin cycle data)
-                const fallbackCDay = !fixedCycleDayText ? getCycleDay(d, (currentCycle || cycle)?.startDate, (currentCycle || cycle)?.cycleLength) : null;
-                const phase = fixedCyclePhase || getPhase(fallbackCDay);
-                
+
+                const displayDayText = calcCycleDay > 0 ? `Day ${calcCycleDay}` : savedDayText;
+
+                // 3. DETERMINAR FASE
+                const savedPhase = notesWithCycleData.length > 0 ? notesWithCycleData[0].cyclePhase : null;
+                const phase = calcCycleDay > 0 ? getPhase(calcCycleDay) : (savedPhase || getPhase(null));
+
                 const hasNotes = dayNotes.length > 0;
                 const preview = hasNotes ? dayNotes[0].text : null;
-                
-                // Debug logging para verificar fix
-                if (hasNotes && fixedCycleDayText) {
-                  console.log('📱 Journal Card - Using FIXED day tag:', {
-                    date: key,
-                    fixedCycleDayText,
-                    fallbackWouldBe: fallbackCDay,
-                    usingFixed: true
-                  });
-                }
 
                 if (hasNotes) {
                   return (
@@ -772,10 +842,13 @@ export default function JournalScreen({
                         <div className="day-meta">
                           {phase && <div className={`day-phase-dot phase-${phase}`} />}
                           {phase && <span className="day-phase-label">{phase}</span>}
-                          {/* FIX CRÍTICO: Mostrar Day Tag FIJO en lugar de fecha calendario */}
-                          {fixedCycleDayText && <span className="day-cycle-label">{fixedCycleDayText}</span>}
-                          {!fixedCycleDayText && fallbackCDay && <span className="day-cycle-label">Day {fallbackCDay}</span>}
-                          {!fixedCycleDayText && !fallbackCDay && <span className="day-date-label">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+
+                          {/* Muestra el día calculado dinámicamente */}
+                          {displayDayText ? (
+                            <span className="day-cycle-label">{displayDayText}</span>
+                          ) : (
+                            <span className="day-date-label">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                          )}
                         </div>
                         <div className="day-preview">{preview}</div>
                         <div className="day-tags">
@@ -784,9 +857,7 @@ export default function JournalScreen({
                           ))}
                         </div>
                       </div>
-                      <div className="day-right">
-                        <span className="day-note-count">{dayNotes.length}</span>
-                      </div>
+
                     </button>
                   );
                 } else {

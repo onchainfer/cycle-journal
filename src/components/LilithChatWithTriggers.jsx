@@ -767,16 +767,53 @@ export default function LilithChatWithTriggers({
     // FIX CRÍTICO: Agregar props faltantes para day tags
     currentCycle, currentCycleDay, currentPhase,
 }) {
+
+    // Funciones de utilidad para cálculo de ciclo
+    const getCycleDay = (date, startDate, cycleLength = 28) => {
+        if (!startDate) return null;
+
+        // Forzamos 12:00 PM para evitar que el cambio de día ocurra por diferencia de horas/minutos
+        const start = new Date(startDate);
+        start.setHours(12, 0, 0, 0);
+
+        const current = new Date(date);
+        current.setHours(12, 0, 0, 0);
+
+        const diffTime = current - start;
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        // Si el cálculo da algo como 2.99 o 3.01, Math.round lo ajusta perfectamente
+        return diffDays > 0 ? ((diffDays - 1) % cycleLength) + 1 : null;
+    };
+
+    const getPhase = (day) => {
+        if (!day) return null;
+        if (day <= 5) return "Menstrual";
+        if (day <= 13) return "Follicular";
+        if (day <= 16) return "Ovulatory";
+        return "Luteal";
+    };
     const getInitialMessage = () => {
         const name = profile.name ? `, ${profile.name}` : "";
-        const dayCtx = cycle.cycleDay
-            ? `You're on day ${cycle.cycleDay}${cycle.phase ? `, ${cycle.phase} phase` : ""}.`
+
+        // 1. CÁLCULO DINÁMICO DEL DÍA REAL
+        // Usamos la misma lógica que el Journal para que coincida perfectamente
+        const activeCycle = currentCycle || cycle;
+        const realDay = getCycleDay(new Date(), activeCycle?.startDate, activeCycle?.cycleLength);
+        const realPhase = getPhase(realDay);
+
+        // 2. CONSTRUCCIÓN DEL CONTEXTO
+        const dayCtx = realDay > 0
+            ? `You're on day ${realDay}${realPhase ? `, ${realPhase} phase` : ""}.`
             : "";
+
         const notesCtx = todayNotes.length > 0
             ? ` I can see you've already logged ${todayNotes.length} note${todayNotes.length !== 1 ? "s" : ""} today.`
             : "";
+
         return {
-            id: 1, role: "lilith",
+            id: Date.now(), // Usar timestamp para evitar IDs duplicados
+            role: "lilith",
             text: `Hey${name}. ${dayCtx}${notesCtx} What's going on?`.trim(),
             time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
         };
@@ -1396,61 +1433,62 @@ export default function LilithChatWithTriggers({
     // ── LILITH API INTEGRATION ─────────────────────────────────────────────────
     const callLilith = async (userText, tags, history) => {
         try {
-            // Prepare user profile data for API call
+            // 1. CÁLCULO DE TIEMPO REAL (Para evitar desfases de zona horaria)
+            const today = new Date();
+            const activeCycle = currentCycle || cycle;
+            const realDay = getCycleDay(today, activeCycle?.startDate, activeCycle?.cycleLength);
+            const realPhase = getPhase(realDay);
+            const formattedDate = today.toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+            });
+
+            // 2. PREPARAR PERFIL CON DATOS DINÁMICOS
             const userProfile = {
                 ...profile,
-                ...cycle,
+                ...activeCycle,
+                // Sobrescribimos con los valores calculados en tiempo real
+                cycleDay: realDay,
+                phase: realPhase,
+                currentDate: formattedDate,
+                localTime: today.toLocaleTimeString(),
                 tags: tags.length > 0 ? tags : undefined,
-                // FIX CRÍTICO: Asegurar que las medicaciones estén disponibles para Lilith
                 medications: profile?.medications || [],
-                // Log para debugging de medicaciones
                 debugMedications: true
             };
 
-            // Debug log para verificar medicaciones
-            console.log('🧠 Lilith Context - Medications:', {
-                profileMedications: profile?.medications,
-                userProfileMedications: userProfile.medications,
-                isEmpty: !userProfile.medications || userProfile.medications.length === 0,
-                activeMeds: userProfile.medications?.filter(m => !m.status || m.status === 'active')
-            });
+            // 3. LOG DE CONTROL (Para que tú veas qué le mandas a la IA)
+            console.log(`🧠 Lilith Brain Sync - Day: ${realDay} | Phase: ${realPhase} | Date: ${formattedDate}`);
 
-            // Prepare daily logs (recent notes)
+            // 4. PREPARAR LOGS DIARIOS
             const dailyLogs = notes.slice(-7).map(note => ({
-                cycleDay: cycle.cycleDay,
+                cycleDay: realDay, // Usar el día real calculado
                 notes: note.text,
                 symptoms: note.tags,
                 date: note.date,
                 time: note.time
             }));
 
-            // Prepare intent callbacks for smart cycle tracking
             const intentCallbacks = {
                 updateCycleStart: (newDate) => {
-                    // Safe date validation before using
                     const safeDate = new Date(newDate);
                     if (isNaN(safeDate.getTime())) {
-                        console.error('Invalid date passed to updateCycleStart, using current time');
                         safeDate.setTime(Date.now());
                     }
-
-                    // Use the existing cycle event system to update the cycle
                     if (onCycleEvent) {
                         onCycleEvent('RESET_CYCLE', {
                             fields: {
                                 startDate: safeDate.toISOString(),
-                                flow: 'normal' // default
+                                flow: 'normal'
                             }
                         });
                     }
                 },
                 updateProfile: (updates) => {
-                    // This could be expanded to update medication profile
                     console.log('Profile update triggered:', updates);
                 }
             };
 
-            // Call our Anthropic service with intent detection
+            // 5. LLAMADA FINAL
             const response = await sendMessageToLilith(
                 userText,
                 history,
@@ -1493,9 +1531,20 @@ export default function LilithChatWithTriggers({
         // Call real Anthropic API with typing effect
         setIsTyping(true);
 
-        const currentMessages = [...messages, userMsg];
-        const response = await callLilith(text.trim(), activeTags, currentMessages);
+        // 1. ANCLA DE TIEMPO REAL
+        const today = new Date();
+        const realDay = getCycleDay(today, (currentCycle || cycle)?.startDate);
+        const realPhase = getPhase(realDay);
+        const formattedDate = today.toLocaleDateString('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+        });
 
+        // 2. CREAMOS EL CONTEXTO DE SISTEMA (No se guarda en el chat, solo se envía a la IA)
+        const systemContext = `[SYSTEM CONTEXT: Today is ${formattedDate}. User's local time: ${today.toLocaleTimeString()}. The user is STRICTLY on Cycle Day ${realDay}, ${realPhase} phase. Never hallucinate that it is a different day.]`;
+        // 3. SE LO PASAMOS A LA LLAMADA DE LILITH
+        const currentMessages = [...messages, userMsg];
+        // Pasamos el systemContext como un prefijo al texto del usuario para que la IA lo lea primero
+        const response = await callLilith(`${systemContext} ${text.trim()}`, activeTags, currentMessages);
         // Parse JSON intents from AI response
         const parsedResponse = parseAIIntents(response);
         if (parsedResponse.intent) {
