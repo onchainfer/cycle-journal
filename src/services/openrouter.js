@@ -197,7 +197,7 @@ export async function sendMessageToLilith(
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + OPENROUTER_KEY_DEV.trim(),
-                'HTTP-Referer': 'http://localhost:3000',
+                'HTTP-Referer': window.location.origin,
                 'X-Title': 'Lilith Cycle Journal',
                 'Content-Type': 'application/json'
             },
@@ -470,7 +470,7 @@ Please provide a concise analysis in professional Markdown format that incorpora
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + OPENROUTER_KEY_DEV.trim(),
-                'HTTP-Referer': 'http://localhost:3000',
+                'HTTP-Referer': window.location.origin,
                 'X-Title': 'Lilith Medical Reports',
                 'Content-Type': 'application/json'
             },
