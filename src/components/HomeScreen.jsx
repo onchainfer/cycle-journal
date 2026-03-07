@@ -667,15 +667,22 @@ export default function HomeScreen({
 
   if (rawStartDate) {
     const today = new Date();
-    const startDate = new Date(rawStartDate);
 
-    // Normalizamos a medianoche local para evitar problemas de horas/minutos
+    // --- FIX PARA MÉXICO: FORZAR LECTURA LOCAL ---
+    // Limpiamos el string de cualquier "T00:00Z" y forzamos medianoche local
+    const dateStr = typeof rawStartDate === 'string' ? rawStartDate.split('T')[0] : rawStartDate;
+    const startDate = new Date(`${dateStr}T00:00:00`);
+
+    // Normalizamos ambos a medianoche local de sus respectivos días
     const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    // Calculamos la diferencia real en milisegundos y luego en días
+    // Calculamos la diferencia real en milisegundos
     const diffInMs = todayMidnight.getTime() - startMidnight.getTime();
-    const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
+
+    // Cambiamos Math.round por Math.floor para evitar que milisegundos 
+    // residuales nos empujen al día siguiente antes de tiempo
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
     cycleDay = diffInDays + 1;
 
@@ -685,13 +692,13 @@ export default function HomeScreen({
     else if (cycleDay <= 16) phase = "ovulation";
     else phase = "luteal";
 
-    console.log("🚀 Lilith Sync Debug:", {
+    console.log("🚀 Lilith Sync Debug (Home):", {
       origin: rawStartDate,
+      sanitized: dateStr,
       calculatedDay: cycleDay,
       diffDays: diffInDays
     });
   } else {
-    // Si de plano no hay fecha, usamos el valor que venga del prop o null
     cycleDay = currentCycleDay || null;
     phase = currentPhase || null;
   }

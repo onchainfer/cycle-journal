@@ -417,41 +417,43 @@ function getAverageCycleLength(history, defaultLength = 28) {
 }
 
 function getCycleDay(date, cycleStart, history = []) {
+  // 1. Normalizamos la fecha objetivo (la que el calendario está pintando)
   const targetDate = new Date(date);
   targetDate.setHours(0, 0, 0, 0);
 
   const safeHistory = Array.isArray(history) ? history : [];
-  const avgLength = getAverageCycleLength(safeHistory);
+  const avgLength = getAverageCycleLength(safeHistory) || 28;
 
-  // 1. PRIORIDAD MÁXIMA: Ciclo Actual (Presente y Futuro)
-  // Si tenemos una fecha de inicio activa, esa es la "verdad absoluta"
+  // PRIORIDAD MÁXIMA: Ciclo Actual
   if (cycleStart) {
-    const start = new Date(cycleStart);
+    // --- FIX: Forzar lectura local ---
+    const startStr = typeof cycleStart === 'string' ? cycleStart.split('T')[0] : cycleStart;
+    const start = new Date(`${startStr}T00:00:00`);
     start.setHours(0, 0, 0, 0);
 
     if (targetDate >= start) {
       const diffInMs = targetDate.getTime() - start.getTime();
-      const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
+      // Usamos Math.floor para ser exactos con los días de calendario
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-      // Si la diferencia es menor al promedio, mostramos el día real (ej: 1 al 28)
-      // Solo reiniciamos si realmente estamos proyectando el SEGUNDO mes a futuro
-      const dayOfCycle = (diffInDays % avgLength) + 1;
-
-      return dayOfCycle;
+      // Esto calcula el día (1, 2, 3...) reiniciando según el promedio si es a futuro
+      return (diffInDays % avgLength) + 1;
     }
   }
 
-  // 2. SEGUNDA PRIORIDAD: Revisar el Historial (Pasado)
-  // Solo si la fecha es anterior al ciclo actual, buscamos en el historial
+  // SEGUNDA PRIORIDAD: Historial
   for (const hist of safeHistory) {
-    if (hist?.startDate && hist?.endDate) {
-      const hStart = new Date(hist.startDate);
-      const hEnd = new Date(hist.endDate);
+    if (hist?.startDate) {
+      const hStartStr = typeof hist.startDate === 'string' ? hist.startDate.split('T')[0] : hist.startDate;
+      const hStart = new Date(`${hStartStr}T00:00:00`);
       hStart.setHours(0, 0, 0, 0);
-      hEnd.setHours(0, 0, 0, 0);
 
-      if (targetDate >= hStart && targetDate <= hEnd) {
-        const diff = Math.round((targetDate.getTime() - hStart.getTime()) / (1000 * 60 * 60 * 24));
+      // Si el historial tiene endDate, lo usamos; si no, calculamos hasta el siguiente inicio
+      const hEnd = hist.endDate ? new Date(`${hist.endDate.split('T')[0]}T00:00:00`) : null;
+      if (hEnd) hEnd.setHours(0, 0, 0, 0);
+
+      if (targetDate >= hStart && (!hEnd || targetDate <= hEnd)) {
+        const diff = Math.floor((targetDate.getTime() - hStart.getTime()) / (1000 * 60 * 60 * 24));
         return diff + 1;
       }
     }
@@ -459,30 +461,19 @@ function getCycleDay(date, cycleStart, history = []) {
 
   return null;
 }
+
 function getPhase(cycleDay) {
-  if (!cycleDay) return null;
+  if (!cycleDay || cycleDay < 1) return null;
 
-  // 1. Menstrual: Días 1 a 5
-  if (cycleDay >= 1 && cycleDay <= 5) {
-    return PHASES.find(p => p.name === "menstrual");
-  }
-  // 2. Folicular: Días 6 a 13
-  if (cycleDay >= 6 && cycleDay <= 13) {
-    return PHASES.find(p => p.name === "follicular");
-  }
-  // 3. Ovulación: Días 14 a 16
-  if (cycleDay >= 14 && cycleDay <= 16) {
-    return PHASES.find(p => p.name === "ovulation");
-  }
-  // 4. Lútea: Día 17 en adelante
-  // Esto atrapará cualquier día (17, 18... 32) hasta que el ciclo se reinicie
-  if (cycleDay >= 17) {
-    return PHASES.find(p => p.name === "luteal");
-  }
-
-  return null;
+  // Menstrual: 1-5
+  if (cycleDay <= 5) return PHASES.find(p => p.name === "menstrual");
+  // Folicular: 6-13
+  if (cycleDay <= 13) return PHASES.find(p => p.name === "follicular");
+  // Ovulación: 14-16
+  if (cycleDay <= 16) return PHASES.find(p => p.name === "ovulation");
+  // Lútea: 17 en adelante
+  return PHASES.find(p => p.name === "luteal");
 }
-
 function dateKey(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
@@ -651,132 +642,155 @@ export default function CycleCalendar({
             })}
           </div>
         </div>
-
-        {/* ── CYCLE STRIP (Alineada con el formato de Insights) ── */}
-        <div className="strip-alignment-wrapper" style={{
-          width: '100%',
-          maxWidth: '680px',
-          margin: '0 auto',
-          padding: '0 20px',
-          boxSizing: 'border-box'
+        {/* ── CYCLE STRIP (Contenedor Principal con Márgenes Fijos) ── */}
+        <div className="insight-card" style={{
+          width: 'calc(100% - 40px)',
+          margin: '0 auto 32px auto',
+          display: 'block',
+          boxSizing: 'border-box',
+          backgroundColor: '#1a1a2e',
+          borderRadius: '12px',
+          padding: '24px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
         }}>
-          <div className="insight-card" style={{
-            width: '100%',
-            marginBottom: '32px',
-            display: 'block'
-          }}>
-            {(() => {
-              // 1. OBTENER LA VERDAD: Calculamos los valores reales basándonos en la fecha de inicio
-              const activeCycle = currentCycle || cycle;
-              const avg = getAverageCycleLength(cycleHistory, activeCycle?.cycleLength || 28);
+          {(() => {
+            // 1. OBTENER LA VERDAD
+            const activeCycle = currentCycle || cycle;
+            const avg = getAverageCycleLength(cycleHistory, activeCycle?.cycleLength || 28);
 
-              let displayDay = 0;
-              let displayPhase = "";
+            let displayDay = 0;
+            let displayPhase = "";
 
-              if (activeCycle?.startDate) {
-                const today = new Date();
-                const start = new Date(activeCycle.startDate);
+            if (activeCycle?.startDate) {
+              const today = new Date();
+              const dateStr = typeof activeCycle.startDate === 'string'
+                ? activeCycle.startDate.split('T')[0]
+                : activeCycle.startDate;
 
-                // Normalización a Medianoche Local para evitar desfases de horas (0-index bug)
-                const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-                const startMid = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+              const start = new Date(`${dateStr}T00:00:00`);
+              const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+              const startMid = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
 
-                // Cálculo exacto: Si hoy es 6 y empezó el 5, esto DA 2.
-                const diffDays = Math.round((todayMid - startMid) / (1000 * 60 * 60 * 24));
-                displayDay = diffDays + 1;
+              const diffDays = Math.floor((todayMid - startMid) / (1000 * 60 * 60 * 24));
+              displayDay = diffDays + 1;
 
-                // Obtenemos la fase real usando la lógica de rangos que corregimos
-                const phaseObj = getPhase(displayDay);
-                displayPhase = phaseObj?.label || "Menstrual";
-              } else {
-                // Fallback si no hay ciclo activo
-                displayDay = currentCycleDay || cycle?.cycleDay || 0;
-                displayPhase = currentPhase || cycle?.phase || "";
-              }
+              const phaseObj = getPhase(displayDay);
+              displayPhase = phaseObj?.label || "Menstrual";
+            } else {
+              displayDay = currentCycleDay || cycle?.cycleDay || 0;
+              displayPhase = currentPhase || cycle?.phase || "";
+            }
 
-              // Cálculo del porcentaje para el marcador blanco (basado en el día real vs promedio de 30)
-              const progressPercent = Math.min((displayDay / avg) * 100, 100);
+            const progressPercent = Math.min(((displayDay - 0.5) / avg) * 100, 100);
 
-              return (
-                <div className="insight-body" style={{ width: '100%' }}>
-                  {/* Encabezado: Título y Día actual Sincronizado */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px' }}>
-                    <div className="insight-title" style={{ opacity: 0.5, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '1.5px' }}>
-                      Current cycle
-                    </div>
-                    <div style={{ textTransform: 'uppercase', fontSize: '10px', letterSpacing: '1.5px', color: '#b87590', fontWeight: 'bold' }}>
-                      {displayDay > 0 ? (
-                        `Day ${displayDay} · ${displayPhase}`
-                      ) : (
-                        "No cycle active"
-                      )}
-                    </div>
-                  </div>
+            return (
+              <div className="insight-body" style={{ width: '100%' }}>
 
-                  {/* Barra de Progreso Segmentada */}
-                  <div className="progress-container-full" style={{
-                    width: '100%',
-                    height: '10px',
-                    background: 'rgba(255,255,255,0.05)',
-                    borderRadius: '5px',
-                    position: 'relative'
+                {/* 2. ENCABEZADO RESTAURADO (Aquí es donde se ven los días y fases) */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: '20px'
+                }}>
+                  <div className="insight-title" style={{
+                    opacity: 0.5,
+                    textTransform: 'uppercase',
+                    fontSize: '10px',
+                    letterSpacing: '1.5px',
+                    color: '#fff'
                   }}>
-                    <div className="phase-segments" style={{ display: 'flex', width: '100%', height: '100%', borderRadius: '5px', overflow: 'hidden' }}>
-                      {PHASES.map(p => {
-                        // La fase lútea se estira dinámicamente según tu promedio real
-                        const flexValue = p.name === 'luteal' ? Math.max(avg - 16, 10) : (p.days?.length || 5);
-                        return (
-                          <div key={p.name} style={{ flex: `${flexValue} 0 0%`, backgroundColor: p.color, height: '100%' }} />
-                        );
-                      })}
-                    </div>
-
-                    {/* Marcador de progreso (Punto Blanco) Sincronizado */}
-                    <div className="phase-progress-marker" style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: `${progressPercent}%`,
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: '#fff',
-                      borderRadius: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      boxShadow: '0 0 15px rgba(255,255,255,1)',
-                      zIndex: 10,
-                      transition: 'left 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }} />
+                    Current cycle
                   </div>
+                  <div style={{
+                    textTransform: 'uppercase',
+                    fontSize: '10px',
+                    letterSpacing: '1.5px',
+                    color: '#b87590',
+                    fontWeight: 'bold'
+                  }}>
+                    {displayDay > 0 ? `Day ${displayDay} · ${displayPhase}` : "No cycle active"}
+                  </div>
+                </div>
 
-                  {/* Etiquetas de las fases (Labels dinámicos) */}
-                  <div className="phase-labels" style={{
+                {/* 3. BARRA DE PROGRESO */}
+                <div className="progress-container-full" style={{
+                  width: '100%',
+                  height: '10px',
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: '5px',
+                  position: 'relative',
+                  marginBottom: '4px' // Espacio extra para las etiquetas
+                }}>
+                  <div className="phase-segments" style={{
                     display: 'flex',
                     width: '100%',
-                    marginTop: '12px'
+                    height: '100%',
+                    borderRadius: '5px',
+                    overflow: 'hidden'
                   }}>
                     {PHASES.map(p => {
                       const flexValue = p.name === 'luteal' ? Math.max(avg - 16, 10) : (p.days?.length || 5);
                       return (
                         <div
                           key={p.name}
-                          className="legend-item"
                           style={{
-                            flex: `${flexValue} 0 0%`,
-                            justifyContent: p.name === 'menstrual' ? 'flex-start' : p.name === 'luteal' ? 'flex-end' : 'center',
-                            display: 'flex',
-                            fontSize: '10px',
-                            whiteSpace: 'nowrap',
-                            opacity: 0.8
+                            flex: flexValue,
+                            backgroundColor: p.color,
+                            height: '100%',
+                            minWidth: 0
                           }}
-                        >
-                          {p.label}
-                        </div>
+                        />
                       );
                     })}
                   </div>
+
+                  {/* Marcador Blanco */}
+                  <div className="phase-progress-marker" style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: `${progressPercent}%`,
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: '#fff',
+                    borderRadius: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    boxShadow: '0 0 15px rgba(255,255,255,1)',
+                    zIndex: 10
+                  }} />
                 </div>
-              );
-            })()}
-          </div>
+
+                {/* 4. ETIQUETAS DE FASES ABAJO */}
+                <div className="phase-labels" style={{
+                  display: 'flex',
+                  width: '100%',
+                  marginTop: '12px',
+                  justifyContent: 'space-between'
+                }}>
+                  {PHASES.map((p, index) => (
+                    <div
+                      key={p.name}
+                      style={{
+                        textAlign: index === 0 ? 'left' : index === PHASES.length - 1 ? 'right' : 'center',
+                        fontSize: '9px',
+                        textTransform: 'uppercase',
+                        opacity: 0.6,
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '0.5px',
+                        color: '#fff',
+                        flex: 1, // Permite que cada una ocupe su espacio
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {p.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── INSIGHTS ── */}
@@ -881,7 +895,7 @@ export default function CycleCalendar({
             </button>
           ))}
         </div>
-      </div>
+      </div >
     </>
   );
 }

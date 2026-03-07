@@ -772,17 +772,16 @@ export default function LilithChatWithTriggers({
     const getCycleDay = (date, startDate, cycleLength = 28) => {
         if (!startDate) return null;
 
-        // Forzamos 12:00 PM para evitar que el cambio de día ocurra por diferencia de horas/minutos
-        const start = new Date(startDate);
-        start.setHours(12, 0, 0, 0);
+        // Forzamos a JS a leer la fecha como local añadiendo una hora fija sin 'Z'
+        const dateString = typeof startDate === 'string' ? startDate.split('T')[0] : startDate;
+        const start = new Date(`${dateString}T00:00:00`);
 
         const current = new Date(date);
-        current.setHours(12, 0, 0, 0);
+        current.setHours(0, 0, 0, 0);
 
-        const diffTime = current - start;
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const diffTime = current.getTime() - start.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-        // Si el cálculo da algo como 2.99 o 3.01, Math.round lo ajusta perfectamente
         return diffDays > 0 ? ((diffDays - 1) % cycleLength) + 1 : null;
     };
 
@@ -793,17 +792,18 @@ export default function LilithChatWithTriggers({
         if (day <= 16) return "Ovulatory";
         return "Luteal";
     };
+
     const getInitialMessage = () => {
         const name = profile.name ? `, ${profile.name}` : "";
 
-        // 1. CÁLCULO DINÁMICO DEL DÍA REAL
-        // Usamos la misma lógica que el Journal para que coincida perfectamente
-        const activeCycle = currentCycle || cycle;
-        const realDay = getCycleDay(new Date(), activeCycle?.startDate, activeCycle?.cycleLength);
-        const realPhase = getPhase(realDay);
+        // 1. USAR PROPS DIRECTAS (Evitamos recalcular con fechas ISO problemáticas)
+        // Usamos currentCycleDay y currentPhase que vienen del componente padre
+        const realDay = currentCycleDay;
+        const realPhase = currentPhase;
 
         // 2. CONSTRUCCIÓN DEL CONTEXTO
-        const dayCtx = realDay > 0
+        // Si no hay ciclo activo (realDay es null), no mostramos el contexto del día
+        const dayCtx = (realDay && realDay > 0)
             ? `You're on day ${realDay}${realPhase ? `, ${realPhase} phase` : ""}.`
             : "";
 
@@ -812,7 +812,7 @@ export default function LilithChatWithTriggers({
             : "";
 
         return {
-            id: Date.now(), // Usar timestamp para evitar IDs duplicados
+            id: Date.now(),
             role: "lilith",
             text: `Hey${name}. ${dayCtx}${notesCtx} What's going on?`.trim(),
             time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
@@ -846,6 +846,8 @@ export default function LilithChatWithTriggers({
         reason: ''
     });
     const [showFlowDialog, setShowFlowDialog] = useState(false);
+    const [pendingPeriodData, setPendingPeriodData] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Persist chat messages to localStorage whenever they change
     useEffect(() => {
@@ -890,83 +892,80 @@ export default function LilithChatWithTriggers({
         }
     };
 
-    // Handle confirmed actions with safe date handling and immediate Lilith feedback
-    const handleConfirmAction = (action) => {
-        const now = new Date();
+    // Handle confirmed actions with safe date handling and flexible dates
+    const handleConfirmAction = (action, customDate) => {
+        // Si no se pasa customDate, usamos el momento actual
+        const baseDate = customDate ? new Date(customDate) : new Date();
 
         // Validate date before proceeding
-        if (isNaN(now.getTime())) {
+        if (isNaN(baseDate.getTime())) {
             console.error('Invalid date created');
             return;
         }
 
+        // Formateamos para strings de fecha consistentes
+        const dateString = baseDate.toISOString().split('T')[0];
+
         switch (action) {
             case 'period':
-                // Don't auto-reset yet - ask about flow first
+                // Forzamos que la fecha sea interpretada como local y no UTC
+                const chosenDate = selectedDate; // Ya viene como "YYYY-MM-DD" del input
+
+                // Calculamos el día basándonos en la fecha actual LOCAL
+                const todayLocal = new Date();
+                const calcDay = getCycleDay(todayLocal, chosenDate, currentCycle?.cycleLength || 28);
+
+                setPendingPeriodData({
+                    startDate: chosenDate,
+                    calculatedDay: calcDay,
+                    phase: getPhase(calcDay)
+                });
+
                 setShowFlowDialog(true);
+                setShowActionDialog(null);
                 break;
 
             case 'journal':
                 if (journalText.trim() && addNote) {
-                    const safeDate = new Date();
-                    if (!isNaN(safeDate.getTime())) {
-                        const noteText = journalText.trim();
-                        addNote({
-                            text: noteText,
-                            date: safeDate.toISOString().split('T')[0], // Safe date conversion
-                            time: getTime(),
-                            tags: []
-                        });
+                    const noteText = journalText.trim();
 
-                        // Add confirmation message to chat
+                    addNote({
+                        text: noteText,
+                        date: dateString, // Usamos la fecha validada (podría ser ayer)
+                        time: getTime(),
+                        tags: []
+                    });
+
+                    // Add confirmation message to chat
+                    addMessage({
+                        id: Date.now(),
+                        role: 'system',
+                        text: `Journal entry added for ${dateString}: "${noteText}"`,
+                        time: getTime(),
+                        isSystemMessage: true
+                    });
+
+                    // Immediate Lilith feedback about the journal entry
+                    setTimeout(() => {
+                        const feedback = generateJournalFeedback(noteText, cycle);
                         addMessage({
-                            id: Date.now(),
-                            role: 'system',
-                            text: `Journal entry added: "${noteText}"`,
-                            time: getTime(),
-                            isSystemMessage: true
+                            id: Date.now() + 1,
+                            role: 'lilith',
+                            text: feedback,
+                            time: getTime()
                         });
-
-                        // Immediate Lilith feedback about the journal entry
-                        setTimeout(() => {
-                            const feedback = generateJournalFeedback(noteText, cycle);
-                            addMessage({
-                                id: Date.now() + 1,
-                                role: 'lilith',
-                                text: feedback,
-                                time: getTime()
-                            });
-                        }, 1200);
-                    }
+                    }, 1200);
                 }
                 setJournalText('');
                 break;
 
             case 'medication':
                 if (medicationForm.action && medicationForm.name && addChange && setProfile) {
-                    const currentDate = new Date().toISOString();
-                    const todayDateString = currentDate.split('T')[0];
+                    // Usamos la fecha base para consistencia en el log de medicación
+                    const todayDateString = dateString;
 
-                    // 💊 FIX DEFINITIVO: Update profile medications con doble acción
                     setProfile(prevProfile => {
-                        console.log('💊 MEDICATION UPDATE - BEFORE:', {
-                            action: medicationForm.action,
-                            medicationName: medicationForm.name,
-                            newDose: medicationForm.dose,
-                            currentMedications: prevProfile.medications,
-                            medicationsCount: prevProfile.medications?.length || 0
-                        });
-
-                        // 🛡️ REGLA DE ORO: Preservar array existente
                         let updatedMedications = [...(prevProfile.medications || [])];
-
-                        console.log('💊 SPREAD OPERATOR applied - PRESERVATION CONFIRMED:', {
-                            originalCount: prevProfile.medications?.length || 0,
-                            copiedCount: updatedMedications.length,
-                            preserved: updatedMedications.length === (prevProfile.medications?.length || 0)
-                        });
-
-                        // 💊 UPSERT LOGIC: Case-insensitive comparison
                         const normalizedName = medicationForm.name.toLowerCase().trim();
 
                         const findExistingIndex = (meds, name) => {
@@ -978,12 +977,8 @@ export default function LilithChatWithTriggers({
                         };
 
                         if (medicationForm.action === 'add') {
-                            // 💊 UPSERT: Check if medication already exists
                             const existingIndex = findExistingIndex(updatedMedications, normalizedName);
-
                             if (existingIndex !== -1) {
-                                // UPDATE: Actualizar dosis del existente
-                                console.log('💊 UPSERT: Medication exists, updating dose');
                                 updatedMedications[existingIndex] = {
                                     ...(typeof updatedMedications[existingIndex] === 'string'
                                         ? { name: updatedMedications[existingIndex] }
@@ -994,8 +989,6 @@ export default function LilithChatWithTriggers({
                                     reason: medicationForm.reason
                                 };
                             } else {
-                                // INSERT: Agregar nuevo medicamento
-                                console.log('💊 UPSERT: New medication, adding to array');
                                 updatedMedications.push({
                                     name: medicationForm.name,
                                     dose: medicationForm.dose,
@@ -1006,14 +999,10 @@ export default function LilithChatWithTriggers({
                             }
                         }
                         else if (medicationForm.action === 'change') {
-                            console.log('💊 DOSE CHANGE - BEFORE MAP');
-
-                            // Mark current medication as inactive and add new version
                             updatedMedications = updatedMedications.map(med => {
                                 const medName = typeof med === 'string' ? med : med.name;
                                 if (medName.toLowerCase().trim() === normalizedName &&
                                     (!med.status || med.status === 'active')) {
-                                    console.log('💊 MARKING INACTIVE:', med);
                                     return typeof med === 'string'
                                         ? { name: med, status: 'inactive', endDate: todayDateString }
                                         : { ...med, status: 'inactive', endDate: todayDateString };
@@ -1021,7 +1010,6 @@ export default function LilithChatWithTriggers({
                                 return med;
                             });
 
-                            // Add new version with updated dose
                             updatedMedications.push({
                                 name: medicationForm.name,
                                 dose: medicationForm.dose,
@@ -1030,15 +1018,8 @@ export default function LilithChatWithTriggers({
                                 reason: `Dose change: ${medicationForm.reason || 'not specified'}`,
                                 previousDose: true
                             });
-
-                            console.log('💊 DOSE CHANGE - COMPLETED:', {
-                                finalCount: updatedMedications.length,
-                                newMedAdded: updatedMedications[updatedMedications.length - 1]
-                            });
                         }
                         else if (medicationForm.action === 'stop') {
-                            console.log('💊 STOPPING MEDICATION');
-                            // Mark as inactive (case-insensitive)
                             updatedMedications = updatedMedications.map(med => {
                                 const medName = typeof med === 'string' ? med : med.name;
                                 if (medName.toLowerCase().trim() === normalizedName &&
@@ -1051,26 +1032,10 @@ export default function LilithChatWithTriggers({
                             });
                         }
 
-                        // 🛡️ BLINDAJE: Rechazar si el array resultante está vacío (error)
                         if (updatedMedications.length === 0 && prevProfile.medications && prevProfile.medications.length > 0) {
-                            console.error('❌ BLINDAJE ACTIVADO: Update resultó en array vacío, rechazando cambio');
-                            return prevProfile; // NO actualizar, devolver perfil sin cambios
+                            return prevProfile;
                         }
 
-                        // 💊 VERIFICACIÓN FINAL
-                        const activeMeds = updatedMedications.filter(m => !m.status || m.status === 'active');
-                        console.log('💊 FINAL PROFILE UPDATE:', {
-                            action: medicationForm.action,
-                            medicationName: medicationForm.name,
-                            totalMedications: updatedMedications.length,
-                            activeMedications: activeMeds.length,
-                            onboardingMedsPreserved: updatedMedications.some(m =>
-                                !m.startDate || new Date(m.startDate) < new Date(todayDateString)
-                            ),
-                            fullArray: updatedMedications
-                        });
-
-                        // 🛡️ MERGE SEGURO: Preservar todo el perfil, solo actualizar medications
                         return { ...prevProfile, medications: updatedMedications };
                     });
 
@@ -1080,7 +1045,6 @@ export default function LilithChatWithTriggers({
                         'stop': `Stopped taking ${medicationForm.name}`
                     };
 
-                    // Add to changes log
                     addChange({
                         text: `${actionText[medicationForm.action]}${medicationForm.reason ? `. Reason: ${medicationForm.reason}` : ''}`,
                         type: 'medication',
@@ -1091,12 +1055,11 @@ export default function LilithChatWithTriggers({
                             dose: medicationForm.dose,
                             action: medicationForm.action,
                             reason: medicationForm.reason,
-                            date: currentDate,
+                            date: baseDate.toISOString(),
                             status: medicationForm.action === 'stop' ? 'inactive' : 'active'
                         }
                     });
 
-                    // Add confirmation message to chat
                     addMessage({
                         id: Date.now(),
                         role: 'system',
@@ -1105,11 +1068,8 @@ export default function LilithChatWithTriggers({
                         isSystemMessage: true
                     });
 
-                    // Specific Lilith confirmation
                     setTimeout(() => {
-                        const specificFeedback = `I've updated your ${medicationForm.name}${medicationForm.dose ? ` to ${medicationForm.dose}` : ''} in your records. ${cycle?.cycleDay ? `Since you're on day ${cycle.cycleDay}${cycle?.phase ? ` (${cycle.phase} phase)` : ''}, ` : ''
-                            }I'll watch for any changes in your energy or mood over the next few days.`;
-
+                        const specificFeedback = `I've updated your ${medicationForm.name}${medicationForm.dose ? ` to ${medicationForm.dose}` : ''}. ${cycle?.cycleDay ? `Since you're on day ${cycle.cycleDay}, ` : ''}I'll watch for any changes over the next few days.`;
                         addMessage({
                             id: Date.now() + 1,
                             role: 'lilith',
@@ -1129,54 +1089,9 @@ export default function LilithChatWithTriggers({
         setShowActionDialog(null);
     };
 
+
+
     // Handle period flow confirmation
-    const handleFlowConfirmation = (flow) => {
-        const now = new Date();
-
-        // Validate date before proceeding
-        if (isNaN(now.getTime())) {
-            console.error('Invalid date created');
-            return;
-        }
-
-        // Reset cycle to day 1 with flow information
-        if (onCycleEvent) {
-            onCycleEvent('RESET_CYCLE', {
-                fields: {
-                    startDate: now.toISOString(),
-                    flow: flow
-                }
-            });
-        }
-
-        // Add system message to chat
-        addMessage({
-            id: Date.now(),
-            role: 'system',
-            text: `Period started (${flow} flow) - Cycle reset to Day 1`,
-            time: getTime(),
-            isSystemMessage: true
-        });
-
-        // Contextual Lilith response based on flow
-        setTimeout(() => {
-            const flowResponses = {
-                'light': "Period logged with light flow. I've reset your cycle to Day 1. Light periods can be normal, especially if you're stressed or your hormones are shifting. How are you feeling today?",
-                'normal': "Period logged with normal flow. I've reset your cycle to Day 1. Sending you strength for today — remember that rest is productive right now, and iron-rich foods can help with energy.",
-                'heavy': "Period logged with heavy flow. I've reset your cycle to Day 1. Heavy periods can be draining — stay hydrated, consider iron supplements, and don't push yourself today. Are you experiencing any intense cramping?",
-                'spotting': "Spotting logged. I've reset your cycle to Day 1, though spotting can sometimes be breakthrough bleeding. Let's see how this develops over the next couple of days."
-            };
-
-            addMessage({
-                id: Date.now() + 1,
-                role: 'lilith',
-                text: flowResponses[flow] || flowResponses['normal'],
-                time: getTime()
-            });
-        }, 1200);
-
-        setShowFlowDialog(false);
-    };
 
     // Generate contextual feedback for journal entries
     const generateJournalFeedback = (noteText, currentCycle) => {
@@ -1626,6 +1541,55 @@ export default function LilithChatWithTriggers({
         }, 1000);
     };
 
+    const handleFlowConfirmation = (flow) => {
+        // 1. Forzamos que la fecha sea SOLO YYYY-MM-DD
+        const rawDate = pendingPeriodData?.startDate || new Date().toLocaleDateString('en-CA');
+        const displayDate = rawDate.split('T')[0]; // <--- ESTO ELIMINA EL "T00:00:00Z"
+
+        const day = pendingPeriodData?.calculatedDay || 1;
+
+        if (onCycleEvent) {
+            onCycleEvent('RESET_CYCLE', {
+                fields: {
+                    // ENVIAR SOLO EL STRING: "2026-03-05"
+                    startDate: displayDate,
+                    flow: flow
+                }
+            });
+        }
+
+        // 4. MENSAJES DINÁMICOS (Usando displayDate)
+        addMessage({
+            id: Date.now(),
+            role: 'system',
+            text: day > 1
+                ? `Period logged: Started on ${displayDate} (Day ${day})`
+                : `Period started: Cycle reset to Day 1`,
+            time: getTime(),
+            isSystemMessage: true
+        });
+
+        setTimeout(() => {
+            const dayText = day > 1 ? `Day ${day}` : "Day 1";
+            const responses = {
+                'light': `Logged. Since it started on ${displayDate}, you're on ${dayText}. How's your energy?`,
+                'normal': `Got it. That puts you on ${dayText} today. Remember to rest if you need to!`,
+                'heavy': `Logged. You're on ${dayText}. Heavy flow can be draining, stay hydrated.`,
+                'spotting': `Spotting logged for ${displayDate}. We're on ${dayText} now.`
+            };
+
+            addMessage({
+                id: Date.now() + 1,
+                role: 'lilith',
+                text: responses[flow] || responses['normal'],
+                time: getTime()
+            });
+        }, 1000);
+
+        setShowFlowDialog(false);
+        setPendingPeriodData(null);
+    };
+
     return (
         <>
             <style>{css}</style>
@@ -1645,28 +1609,32 @@ export default function LilithChatWithTriggers({
                         </div>
                         <div className="chat-context-pill">
                             {(() => {
-                                // 1. Establish initial values from props/state
                                 let displayCycleDay = cycle?.cycleDay || currentCycleDay;
                                 let displayPhase = cycle?.phase || currentPhase;
-
                                 const activeCycle = currentCycle || cycle;
 
-                                // 2. FORCE RE-CALCULATION if we have a startDate (to ignore hours/minutes)
                                 if (activeCycle?.startDate) {
                                     const today = new Date();
-                                    const start = new Date(activeCycle.startDate);
 
-                                    // Normalize both to Midnight Local Time to compare calendar dates
+                                    // --- EL FIX AQUÍ ---
+                                    // Tomamos solo la parte YYYY-MM-DD y le agregamos T00:00 local
+                                    // Esto evita que JavaScript use el huso horario de Londres (UTC)
+                                    const dateStr = typeof activeCycle.startDate === 'string'
+                                        ? activeCycle.startDate.split('T')[0]
+                                        : activeCycle.startDate;
+
+                                    const start = new Date(`${dateStr}T00:00:00`);
+
+                                    // Normalizamos ambos a medianoche local
                                     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                                     const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
 
-                                    // Calculate difference in full 24h days
+                                    // Usamos Math.floor para evitar que milisegundos perdidos redondeen hacia arriba
                                     const diffMs = todayMidnight.getTime() - startMidnight.getTime();
-                                    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+                                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-                                    displayCycleDay = diffDays + 1; // Correctly results in Day 2 the next calendar day
+                                    displayCycleDay = diffDays + 1;
 
-                                    // 3. Update Phase based on the new day
                                     if (displayCycleDay <= 5) displayPhase = "menstrual";
                                     else if (displayCycleDay <= 13) displayPhase = "follicular";
                                     else if (displayCycleDay <= 16) displayPhase = "ovulation";
@@ -1836,27 +1804,90 @@ export default function LilithChatWithTriggers({
                         <div className="modal-sheet" onClick={e => e.stopPropagation()}>
                             <div className="modal-handle" />
                             <div className="modal-title">Period Tracking</div>
+
                             <div style={{ padding: "20px 0", textAlign: "center" }}>
                                 <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔴</div>
-                                <p style={{ fontSize: "18px", color: "var(--ink)", marginBottom: "8px", fontFamily: "'Crimson Pro', serif" }}>
-                                    Did your period start today?
+
+                                <p style={{
+                                    fontSize: "18px",
+                                    color: "var(--ink)",
+                                    marginBottom: "20px",
+                                    fontFamily: "'Crimson Pro', serif"
+                                }}>
+                                    When did it start?
                                 </p>
-                                <p style={{ fontSize: "14px", color: "var(--ink-ghost)", fontStyle: "italic" }}>
-                                    This will reset your cycle to Day 1
+
+                                <div style={{ padding: "0 24px" }}>
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        max={new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            padding: "14px",
+                                            borderRadius: "16px",
+                                            // Usamos colores de la app: fondo oscuro y borde sutil
+                                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                                            backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                            color: "var(--ink)", // Texto claro
+                                            fontSize: "16px",
+                                            textAlign: "center",
+                                            outline: "none",
+                                            marginBottom: "16px",
+                                            fontFamily: "inherit",
+                                            appearance: "none", // Elimina estilos nativos feos
+                                            colorScheme: "dark" // Hace que el picker nativo sea oscuro
+                                        }}
+                                    />
+                                </div>
+
+                                <p style={{ fontSize: "13px", color: "var(--ink-ghost)", fontStyle: "italic", opacity: 0.7 }}>
+                                    Select the date to sync your cycle correctly.
                                 </p>
                             </div>
+
                             <div className="modal-actions">
-                                <button className="modal-btn secondary" onClick={() => setShowActionDialog(null)}>
-                                    Cancel
+                                <button
+                                    className="modal-btn secondary"
+                                    onClick={() => setShowActionDialog(null)}
+                                    style={{
+                                        flex: 1,
+                                        padding: "12px",
+                                        borderRadius: "12px",
+                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                        backgroundColor: "transparent",
+                                        color: "var(--ink-ghost)",
+                                        fontSize: "14px",
+                                        fontWeight: "600",
+                                        letterSpacing: "1px",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    CANCEL
                                 </button>
-                                <button className="modal-btn primary" onClick={() => handleConfirmAction('period')}>
-                                    Yes, it started
+                                <button
+                                    className="modal-btn primary"
+                                    onClick={() => handleConfirmAction('period', selectedDate)}
+                                    style={{
+                                        flex: 1,
+                                        padding: "12px",
+                                        borderRadius: "12px",
+                                        border: "1px solid rgba(255, 255, 255, 0.1)", // Mismo borde
+                                        backgroundColor: "transparent",            // Mismo fondo
+                                        color: "var(--ink)",                       // Texto un poco más brillante para el "Confirm"
+                                        fontSize: "14px",
+                                        fontWeight: "600",
+                                        letterSpacing: "1px",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    CONFIRM
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
-
                 {showActionDialog === 'journal' && (
                     <div className="modal-overlay" onClick={() => setShowActionDialog(null)}>
                         <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -2011,9 +2042,11 @@ export default function LilithChatWithTriggers({
                                     Got it. How's your flow today?
                                 </p>
                                 <p style={{ fontSize: "14px", color: "var(--ink-ghost)", fontStyle: "italic", marginBottom: "24px" }}>
-                                    This will reset your cycle to Day 1
+                                    {pendingPeriodData?.calculatedDay > 1
+                                        ? `This will sync your cycle to Day ${pendingPeriodData.calculatedDay}`
+                                        : "This will reset your cycle to Day 1"}
                                 </p>
-                                <div className="flow-options">
+                                <div className="flow-options" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", padding: "0 20px" }}>
                                     {[
                                         { value: 'light', label: 'Light', color: '#fdbbc4' },
                                         { value: 'normal', label: 'Normal', color: '#e8b4c4' },
@@ -2024,7 +2057,14 @@ export default function LilithChatWithTriggers({
                                             key={option.value}
                                             className="flow-option-btn"
                                             onClick={() => handleFlowConfirmation(option.value)}
-                                            style={{ borderColor: option.color + '40', color: option.color }}
+                                            style={{
+                                                padding: "15px",
+                                                borderRadius: "12px",
+                                                border: `1px solid ${option.color}40`,
+                                                color: option.color,
+                                                backgroundColor: "rgba(255,255,255,0.05)",
+                                                cursor: "pointer"
+                                            }}
                                         >
                                             {option.label}
                                         </button>
