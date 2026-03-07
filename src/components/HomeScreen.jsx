@@ -49,7 +49,7 @@ body { background: var(--void); }
   padding-bottom: 80px;
 }
 
-/* Grain */
+/* Grain overlay */
 .app::before {
   content:'';position:fixed;inset:-50%;width:200%;height:200%;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
@@ -63,21 +63,19 @@ body { background: var(--void); }
   top:-150px;right:-150px;pointer-events:none;z-index:0;
 }
 
-/* ── HEADER ── */
+/* HEADER */
 .header {
   padding: 52px 24px 20px;
   position: relative;
   z-index: 1;
   animation: fadeUp 0.6s ease both;
 }
-
 .header-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 20px;
 }
-
 .header-greeting {
   font-size: 11px;
   font-weight: 500;
@@ -86,7 +84,6 @@ body { background: var(--void); }
   color: var(--ink-ghost);
   margin-bottom: 4px;
 }
-
 .header-name {
   font-family: 'Playfair Display', serif;
   font-size: 26px;
@@ -94,14 +91,13 @@ body { background: var(--void); }
   color: var(--ink);
   letter-spacing: -0.01em;
 }
-
 .header-symbol {
   font-size: 22px;
   color: var(--lav-dim);
   opacity: 0.6;
 }
 
-/* Cycle card */
+/* CYCLE CARD */
 .cycle-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -110,7 +106,6 @@ body { background: var(--void); }
   position: relative;
   overflow: hidden;
 }
-
 .cycle-card::before {
   content: '';
   position: absolute;
@@ -119,14 +114,12 @@ body { background: var(--void); }
   background: linear-gradient(90deg, transparent, var(--lav-dim), transparent);
   opacity: 0.5;
 }
-
 .cycle-card-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
 }
-
 .cycle-day-num {
   font-family: 'Playfair Display', serif;
   font-size: 52px;
@@ -135,7 +128,6 @@ body { background: var(--void); }
   color: var(--lav);
   letter-spacing: -0.03em;
 }
-
 .cycle-day-label {
   font-size: 10px;
   letter-spacing: 0.15em;
@@ -143,14 +135,12 @@ body { background: var(--void); }
   color: var(--ink-ghost);
   margin-top: 6px;
 }
-
 .cycle-phase-badge {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
 }
-
 .phase-name {
   font-size: 12px;
   font-weight: 500;
@@ -158,12 +148,7 @@ body { background: var(--void); }
   text-transform: uppercase;
   color: var(--blossom);
 }
-
-.phase-dot-row {
-  display: flex;
-  gap: 4px;
-}
-
+.phase-dot-row { display: flex; gap: 4px; }
 .phase-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
@@ -171,7 +156,7 @@ body { background: var(--void); }
 }
 .phase-dot.active { background: var(--blossom); }
 
-/* Cycle bar */
+/* Cycle progress bar */
 .cycle-bar {
   width: 100%;
   height: 2px;
@@ -180,14 +165,12 @@ body { background: var(--void); }
   margin-bottom: 8px;
   position: relative;
 }
-
 .cycle-bar-fill {
   height: 100%;
   border-radius: 1px;
   background: linear-gradient(90deg, var(--lav-dim), var(--blossom));
   box-shadow: 0 0 8px rgba(196,176,232,0.3);
 }
-
 .cycle-bar-labels {
   display: flex;
   justify-content: space-between;
@@ -196,7 +179,7 @@ body { background: var(--void); }
   letter-spacing: 0.08em;
 }
 
-/* ── LILITH MESSAGE ── */
+/* LILITH MESSAGE */
 .lilith-section {
   padding: 0 24px;
   margin-top: 20px;
@@ -204,21 +187,18 @@ body { background: var(--void); }
   z-index: 1;
   animation: fadeUp 0.6s 0.1s ease both;
 }
-
 .lilith-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 2px;
   padding: 18px 20px;
 }
-
 .lilith-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
 }
-
 .lilith-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
@@ -226,7 +206,6 @@ body { background: var(--void); }
   animation: pulse 2.5s ease infinite;
   flex-shrink: 0;
 }
-
 .lilith-label {
   font-size: 10px;
   font-weight: 500;
@@ -234,13 +213,11 @@ body { background: var(--void); }
   text-transform: uppercase;
   color: var(--lav-dim);
 }
-
 .lilith-time {
   font-size: 10px;
   color: var(--ink-ghost);
   margin-left: auto;
 }
-
 .lilith-text {
   font-family: 'Crimson Pro', serif;
   font-size: 16px;
@@ -249,7 +226,7 @@ body { background: var(--void); }
   line-height: 1.65;
 }
 
-/* ── TODAY'S FEED ── */
+/* TODAY'S FEED */
 .feed-section {
   padding: 0 24px;
   margin-top: 24px;
@@ -257,14 +234,12 @@ body { background: var(--void); }
   z-index: 1;
   animation: fadeUp 0.6s 0.2s ease both;
 }
-
 .feed-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
-
 .feed-title {
   font-size: 10px;
   font-weight: 500;
@@ -272,7 +247,6 @@ body { background: var(--void); }
   text-transform: uppercase;
   color: var(--ink-ghost);
 }
-
 .feed-date {
   font-size: 11px;
   color: var(--ink-ghost);
@@ -287,7 +261,6 @@ body { background: var(--void); }
   gap: 2px;
   position: relative;
 }
-
 .notes-list::before {
   content: '';
   position: absolute;
@@ -295,7 +268,6 @@ body { background: var(--void); }
   width: 1px;
   background: var(--border);
 }
-
 .note-entry {
   display: flex;
   gap: 14px;
@@ -303,7 +275,6 @@ body { background: var(--void); }
   padding: 10px 0;
   animation: fadeUp 0.4s ease both;
 }
-
 .note-dot-wrap {
   flex-shrink: 0;
   width: 23px;
@@ -311,7 +282,6 @@ body { background: var(--void); }
   justify-content: center;
   padding-top: 6px;
 }
-
 .note-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
@@ -321,16 +291,13 @@ body { background: var(--void); }
   z-index: 1;
   position: relative;
 }
-
 .note-body { flex: 1; }
-
 .note-time {
   font-size: 10px;
   color: var(--ink-ghost);
   letter-spacing: 0.08em;
   margin-bottom: 4px;
 }
-
 .note-text {
   font-family: 'Crimson Pro', serif;
   font-size: 17px;
@@ -338,14 +305,12 @@ body { background: var(--void); }
   color: var(--ink-soft);
   line-height: 1.55;
 }
-
 .note-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 6px;
 }
-
 .note-tag {
   font-size: 10px;
   padding: 2px 8px;
@@ -354,16 +319,12 @@ body { background: var(--void); }
   color: var(--ink-ghost);
   letter-spacing: 0.05em;
 }
-
-.note-tag.physical { border-color: rgba(232,180,196,0.3); color: var(--blossom-dim); }
+.note-tag.physical  { border-color: rgba(232,180,196,0.3); color: var(--blossom-dim); }
 .note-tag.emotional { border-color: rgba(196,176,232,0.3); color: var(--lav-dim); }
-.note-tag.energy { border-color: rgba(212,184,150,0.3); color: var(--gold); }
+.note-tag.energy    { border-color: rgba(212,184,150,0.3); color: var(--gold); }
 
 /* Empty state */
-.empty-state {
-  text-align: center;
-  padding: 32px 0;
-}
+.empty-state { text-align: center; padding: 32px 0; }
 .empty-text {
   font-family: 'Crimson Pro', serif;
   font-size: 16px;
@@ -372,7 +333,7 @@ body { background: var(--void); }
   line-height: 1.6;
 }
 
-/* ── QUICK NOTE INPUT ── */
+/* QUICK NOTE BAR */
 .quick-note-bar {
   position: fixed;
   bottom: 72px;
@@ -382,7 +343,6 @@ body { background: var(--void); }
   max-width: 432px;
   z-index: 50;
 }
-
 .quick-note-input-row {
   display: flex;
   gap: 8px;
@@ -393,12 +353,10 @@ body { background: var(--void); }
   padding: 12px 16px;
   transition: border-color 0.2s;
 }
-
 .quick-note-input-row:focus-within {
   border-color: var(--lav-dim);
   box-shadow: 0 0 20px rgba(196,176,232,0.08);
 }
-
 .quick-note-input {
   flex: 1;
   background: transparent;
@@ -410,11 +368,7 @@ body { background: var(--void); }
   outline: none;
   caret-color: var(--lav);
 }
-
-.quick-note-input::placeholder {
-  color: var(--ink-ghost);
-}
-
+.quick-note-input::placeholder { color: var(--ink-ghost); }
 .quick-note-send {
   width: 32px; height: 32px;
   border-radius: 1px;
@@ -429,7 +383,6 @@ body { background: var(--void); }
   transition: all 0.2s;
   flex-shrink: 0;
 }
-
 .quick-note-send:hover:not(:disabled) {
   border-color: var(--lav-dim);
   color: var(--lav);
@@ -437,7 +390,7 @@ body { background: var(--void); }
 }
 .quick-note-send:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* ── BOTTOM NAV ── */
+/* BOTTOM NAV */
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 50%;
@@ -451,180 +404,112 @@ body { background: var(--void); }
   padding: 12px 0 20px;
   z-index: 60;
 }
-
-/* Force navbar icon visibility */
 .navbar-icon {
   color: var(--ink-ghost) !important;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
 }
-
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background: none;
-  border: none;
+  background: none; border: none;
   cursor: pointer;
   padding: 4px 16px;
   transition: all 0.2s;
 }
-
 .nav-icon {
-  font-size: 18px;
-  line-height: 1;
-  opacity: 0.4;
-  transition: opacity 0.2s;
+  font-size: 18px; line-height: 1;
+  opacity: 0.4; transition: opacity 0.2s;
   color: var(--ink-ghost);
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
 }
-
 .nav-label {
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 9px; font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-ghost);
   transition: color 0.2s;
 }
+.nav-item.active .nav-icon  { opacity: 1; color: var(--lav); }
+.nav-item.active .nav-label { color: var(--lav); }
 
-.nav-item.active .nav-icon { 
-  opacity: 1; 
-  color: var(--lav);
-}
-.nav-item.active .nav-label { 
-  color: var(--lav); 
-}
-
-/* ── MODAL: Add note expanded ── */
+/* NOTE MODAL */
 .modal-overlay {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(10,8,16,0.8);
   backdrop-filter: blur(4px);
   z-index: 200;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  display: flex; align-items: flex-end; justify-content: center;
 }
-
 .modal-sheet {
-  width: 100%;
-  max-width: 480px;
+  width: 100%; max-width: 480px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   border-radius: 2px 2px 0 0;
   padding: 24px 24px 40px;
   animation: slideUp 0.3s ease both;
 }
-
 .modal-handle {
   width: 32px; height: 3px;
   background: var(--border);
   border-radius: 2px;
   margin: 0 auto 20px;
 }
-
 .modal-title {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--lav-dim);
-  margin-bottom: 16px;
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--lav-dim); margin-bottom: 16px;
 }
-
 .modal-textarea {
   width: 100%;
-  background: transparent;
-  border: none;
+  background: transparent; border: none;
   border-bottom: 1px solid var(--border);
   font-family: 'Crimson Pro', serif;
-  font-size: 19px;
-  font-style: italic;
-  font-weight: 300;
-  color: var(--ink);
-  line-height: 1.7;
-  resize: none;
-  outline: none;
-  padding: 8px 0;
-  caret-color: var(--lav);
+  font-size: 19px; font-style: italic; font-weight: 300;
+  color: var(--ink); line-height: 1.7;
+  resize: none; outline: none;
+  padding: 8px 0; caret-color: var(--lav);
   transition: border-color 0.2s;
 }
 .modal-textarea:focus { border-bottom-color: var(--lav-dim); }
 .modal-textarea::placeholder { color: var(--ink-ghost); }
-
 .modal-tags-label {
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-ghost);
+  font-size: 10px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--ink-ghost);
   margin: 16px 0 8px;
 }
-
-.modal-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 24px;
-}
-
+.modal-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
 .modal-tag-btn {
-  padding: 6px 14px;
-  border-radius: 1px;
-  border: 1px solid var(--border);
-  background: transparent;
+  padding: 6px 14px; border-radius: 1px;
+  border: 1px solid var(--border); background: transparent;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  color: var(--ink-ghost);
-  cursor: pointer;
-  transition: all 0.2s;
-  letter-spacing: 0.04em;
+  font-size: 11px; color: var(--ink-ghost);
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.04em;
 }
-.modal-tag-btn:hover { border-color: var(--border-hover); color: var(--ink-soft); }
+.modal-tag-btn:hover    { border-color: var(--border-hover); color: var(--ink-soft); }
 .modal-tag-btn.sel-phys { border-color: rgba(232,180,196,0.4); color: var(--blossom); background: rgba(232,180,196,0.06); }
-.modal-tag-btn.sel-emot { border-color: rgba(196,176,232,0.4); color: var(--lav); background: rgba(196,176,232,0.06); }
-.modal-tag-btn.sel-enrg { border-color: rgba(212,184,150,0.4); color: var(--gold); background: rgba(212,184,150,0.06); }
-
-.modal-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
+.modal-tag-btn.sel-emot { border-color: rgba(196,176,232,0.4); color: var(--lav);     background: rgba(196,176,232,0.06); }
+.modal-tag-btn.sel-enrg { border-color: rgba(212,184,150,0.4); color: var(--gold);    background: rgba(212,184,150,0.06); }
+.modal-footer { display: flex; justify-content: space-between; align-items: center; }
 .modal-cancel {
   background: none; border: none;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px; color: var(--ink-ghost);
   cursor: pointer; letter-spacing: 0.08em;
 }
-
 .modal-save {
   padding: 12px 32px;
-  border: 1px solid rgba(196,176,232,0.3);
-  border-radius: 1px;
+  border: 1px solid rgba(196,176,232,0.3); border-radius: 1px;
   background: transparent;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--lav);
-  cursor: pointer;
-  transition: all 0.25s;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--lav); cursor: pointer; transition: all 0.25s;
 }
-.modal-save:hover:not(:disabled) {
-  background: rgba(196,176,232,0.08);
-  border-color: var(--lav-dim);
-}
+.modal-save:hover:not(:disabled) { background: rgba(196,176,232,0.08); border-color: var(--lav-dim); }
 .modal-save:disabled { opacity: 0.3; cursor: not-allowed; }
 
 @media (min-width: 480px) {
@@ -632,7 +517,8 @@ body { background: var(--void); }
 }
 `;
 
-// ── MOCK DATA ─────────────────────────────────────────────────────────────────
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+
 const TAG_OPTIONS = [
   { value: "physical", label: "Physical", cls: "sel-phys" },
   { value: "emotional", label: "Emotional", cls: "sel-emot" },
@@ -642,6 +528,8 @@ const TAG_OPTIONS = [
 function getTime() {
   return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
+
+// ── COMPONENT ─────────────────────────────────────────────────────────────────
 
 export default function HomeScreen({
   profile,
@@ -655,49 +543,36 @@ export default function HomeScreen({
   todayNotes,
   activeNav,
   setActiveNav,
-  onOpenSettings
+  onOpenSettings,
 }) {
   const name = profile?.name || "";
 
-  // 1. Buscamos la fecha de inicio en cualquier lugar posible del objeto
-  const rawStartDate = currentCycle?.startDate || cycle?.startDate || (cycleHistory && cycleHistory[0]?.startDate);
+  // Resolve cycle start date from any available source
+  const rawStartDate =
+    currentCycle?.startDate ||
+    cycle?.startDate ||
+    (cycleHistory && cycleHistory[0]?.startDate);
 
   let cycleDay = null;
   let phase = null;
 
   if (rawStartDate) {
+    // Strip time component and parse as local midnight to avoid timezone shift
+    const dateStr = typeof rawStartDate === "string" ? rawStartDate.split("T")[0] : rawStartDate;
+    const startDate = new Date(`${dateStr}T00:00:00`);
     const today = new Date();
 
-    // --- FIX PARA MÉXICO: FORZAR LECTURA LOCAL ---
-    // Limpiamos el string de cualquier "T00:00Z" y forzamos medianoche local
-    const dateStr = typeof rawStartDate === 'string' ? rawStartDate.split('T')[0] : rawStartDate;
-    const startDate = new Date(`${dateStr}T00:00:00`);
-
-    // Normalizamos ambos a medianoche local de sus respectivos días
     const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    // Calculamos la diferencia real en milisegundos
-    const diffInMs = todayMidnight.getTime() - startMidnight.getTime();
-
-    // Cambiamos Math.round por Math.floor para evitar que milisegundos 
-    // residuales nos empujen al día siguiente antes de tiempo
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
+    // Math.floor prevents residual milliseconds from bumping the day count early
+    const diffInDays = Math.floor((todayMidnight.getTime() - startMidnight.getTime()) / (1000 * 60 * 60 * 24));
     cycleDay = diffInDays + 1;
 
-    // Asignación de fases (Strict Logic)
     if (cycleDay <= 5) phase = "menstrual";
     else if (cycleDay <= 13) phase = "follicular";
     else if (cycleDay <= 16) phase = "ovulation";
     else phase = "luteal";
-
-    console.log("🚀 Lilith Sync Debug (Home):", {
-      origin: rawStartDate,
-      sanitized: dateStr,
-      calculatedDay: cycleDay,
-      diffDays: diffInDays
-    });
   } else {
     cycleDay = currentCycleDay || null;
     phase = currentPhase || null;
@@ -706,32 +581,37 @@ export default function HomeScreen({
   const cycleDays = (currentCycle || cycle)?.cycleLength || 28;
   const progress = cycleDay ? Math.min((cycleDay / cycleDays) * 100, 100) : 0;
 
-  console.log('🏠 HomeScreen render:', {
-    currentCycleDay,
-    cycleDay,
-    phase,
-    progress: `${progress.toFixed(1)}%`
-  });
-
-  // Phase dots: how far into the 4-phase cycle are we
-  const phaseIndex = phase === "menstrual" ? 0 : phase === "follicular" ? 1 : phase === "ovulation" ? 2 : phase === "luteal" ? 3 : -1;
+  // Phase dots: one dot per phase, filled up to the current one
+  const phaseIndex = phase === "menstrual" ? 0
+    : phase === "follicular" ? 1
+      : phase === "ovulation" ? 2
+        : phase === "luteal" ? 3
+          : -1;
   const phaseDots = [0, 1, 2, 3].map(i => i <= phaseIndex);
 
-  // Today's notes from App.js global state
+  // Today's notes filtered from global state
   const todayKey = new Date().toISOString().split("T")[0];
   const notes = (todayNotes || allNotes || []).filter(n => n.date === todayKey);
+
   const [quickText, setQuickText] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalText, setModalText] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
 
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const todayLabel = new Date().toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric",
+  });
 
-  // ── DYNAMIC LILITH GREETING LOGIC ──────────────────────────────────────────
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" :
+      hour < 18 ? "Good afternoon" : "Good evening";
+
+  // ── DYNAMIC LILITH GREETING ───────────────────────────────────────────────
+
   const generateDailyHook = () => {
     const userName = name || "Hey there";
-    const recentNotes = (allNotes || []).slice(-3); // Last 3 notes
-    const lastNote = recentNotes[recentNotes.length - 1];
+    const recentNotes = (allNotes || []).slice(-3);
     const yesterdayNote = recentNotes.find(note => {
       const noteDate = new Date(note.date);
       const yesterday = new Date();
@@ -739,103 +619,61 @@ export default function HomeScreen({
       return noteDate.toDateString() === yesterday.toDateString();
     });
 
-    // Time-based greeting variations
-    const hour = new Date().getHours();
     const timeGreeting =
       hour < 12 ? "Good morning" :
         hour < 17 ? "Hey" :
           hour < 21 ? "Good evening" : "Hey";
 
-    // Phase-specific context
-    const phaseContext = {
-      menstrual: {
-        energy: "resting",
-        focus: "self-care",
-        questions: ["How are your cramps?", "Getting enough rest?", "Need any comfort tips?"]
-      },
-      follicular: {
-        energy: "rising",
-        focus: "new projects",
-        questions: ["Feeling that energy boost?", "Ready for something new?", "How's your motivation?"]
-      },
-      ovulation: {
-        energy: "peak",
-        focus: "peak performance",
-        questions: ["Feeling confident today?", "Energy levels high?", "Social mood kicking in?"]
-      },
-      luteal: {
-        energy: cycleDay && cycleDay >= 22 ? "low" : "moderate",
-        focus: cycleDay && cycleDay >= 22 ? "PMS prep" : "winding down",
-        questions: cycleDay && cycleDay >= 22 ?
-          ["Any PMS symptoms yet?", "How's your mood?", "Need comfort strategies?"] :
-          ["How's your energy today?", "Feeling any changes?", "Ready to slow down?"]
-      }
+    // Phase-specific questions for contextual messages
+    const phaseQuestions = {
+      menstrual: ["How are your cramps?", "Getting enough rest?", "Need any comfort tips?"],
+      follicular: ["Feeling that energy boost?", "Ready for something new?", "How's your motivation?"],
+      ovulation: ["Feeling confident today?", "Energy levels high?", "Social mood kicking in?"],
+      luteal: cycleDay && cycleDay >= 22
+        ? ["Any PMS symptoms yet?", "How's your mood?", "Need comfort strategies?"]
+        : ["How's your energy today?", "Feeling any changes?", "Ready to slow down?"],
     };
 
-    // Generate contextual message based on recent notes and phase
+    // Personalized follow-up based on yesterday's note content
     if (yesterdayNote) {
-      const noteText = yesterdayNote.text.toLowerCase();
-
-      // Sleep-related
-      if (noteText.includes('sleep') || noteText.includes('tired') || noteText.includes('insomnia')) {
+      const t = yesterdayNote.text.toLowerCase();
+      if (t.includes("sleep") || t.includes("tired") || t.includes("insomnia"))
         return `${timeGreeting} ${userName}, noticed you had trouble sleeping yesterday. How are you feeling this morning?`;
-      }
-
-      // Pain/cramps
-      if (noteText.includes('pain') || noteText.includes('cramp') || noteText.includes('hurt')) {
+      if (t.includes("pain") || t.includes("cramp") || t.includes("hurt"))
         return `${timeGreeting} ${userName}, saw you were dealing with pain yesterday. How are you holding up today?`;
-      }
-
-      // Mood/anxiety
-      if (noteText.includes('anxious') || noteText.includes('sad') || noteText.includes('stress')) {
+      if (t.includes("anxious") || t.includes("sad") || t.includes("stress"))
         return `${timeGreeting} ${userName}, yesterday seemed tough. How's your headspace today?`;
-      }
-
-      // Energy/fatigue
-      if (noteText.includes('tired') || noteText.includes('energy') || noteText.includes('exhausted')) {
+      if (t.includes("tired") || t.includes("energy") || t.includes("exhausted"))
         return `${timeGreeting} ${userName}, energy was low yesterday. Feeling any better today?`;
-      }
-
-      // Food/cravings
-      if (noteText.includes('craving') || noteText.includes('hungry') || noteText.includes('food')) {
+      if (t.includes("craving") || t.includes("hungry") || t.includes("food"))
         return `${timeGreeting} ${userName}, noticed those cravings yesterday. How's your appetite today?`;
-      }
     }
 
-    // Phase-specific greetings with personal touch
-    if (phase && phaseContext[phase]) {
-      const context = phaseContext[phase];
-      const randomQuestion = context.questions[Math.floor(Math.random() * context.questions.length)];
+    // Phase-aware greeting
+    if (phase && phaseQuestions[phase]) {
+      const questions = phaseQuestions[phase];
+      const q = questions[Math.floor(Math.random() * questions.length)];
 
-      if (phase === "menstrual") {
-        return `${timeGreeting} ${userName}, you're in your ${phase} phase. ${randomQuestion}`;
-      }
-
-      if (phase === "ovulation") {
-        return `${timeGreeting} ${userName}! You're at your peak today. ${randomQuestion}`;
-      }
-
-      if (phase === "luteal" && cycleDay && cycleDay >= 22) {
-        return `${timeGreeting} ${userName}, late luteal phase vibes. ${randomQuestion}`;
-      }
-
-      return `${timeGreeting} ${userName}, you're in your ${phase} phase. ${randomQuestion}`;
+      if (phase === "ovulation")
+        return `${timeGreeting} ${userName}! You're at your peak today. ${q}`;
+      if (phase === "luteal" && cycleDay && cycleDay >= 22)
+        return `${timeGreeting} ${userName}, late luteal phase vibes. ${q}`;
+      return `${timeGreeting} ${userName}, you're in your ${phase} phase. ${q}`;
     }
 
-    // Fallback greetings based on notes activity
-    if (todayNotes && todayNotes.length > 0) {
+    // Fallback based on logging activity
+    if (todayNotes && todayNotes.length > 0)
       return `${timeGreeting} ${userName}! I see you're already tracking today. What else is happening?`;
-    }
-
-    if (recentNotes.length > 0) {
+    if (recentNotes.length > 0)
       return `${timeGreeting} ${userName}! How are you feeling today? Ready to check in?`;
-    }
 
-    // Ultimate fallback
     return `${timeGreeting} ${userName}! How's your day going? Tell me what's on your mind.`;
   };
 
-  const toggleTag = (val) => setSelectedTags(t => t.includes(val) ? t.filter(x => x !== val) : [...t, val]);
+  // ── HANDLERS ─────────────────────────────────────────────────────────────
+
+  const toggleTag = (val) =>
+    setSelectedTags(t => t.includes(val) ? t.filter(x => x !== val) : [...t, val]);
 
   const saveNote = (text, tags) => {
     if (!text.trim()) return;
@@ -860,20 +698,30 @@ export default function HomeScreen({
     setModalOpen(false);
   };
 
+  // ── RENDER ────────────────────────────────────────────────────────────────
+
   return (
     <>
       <style>{css}</style>
       <div className="app">
         <div className="glow" />
 
-        {/* ── HEADER ── */}
+        {/* HEADER */}
         <div className="header">
           <div className="header-top">
             <div>
-              <p className="header-greeting">{new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}</p>
-              <h1 className="header-name">{name || <span style={{ fontStyle: "italic", opacity: 0.4, fontSize: "0.8em" }}>your name</span>}</h1>
+              <p className="header-greeting">{greeting}</p>
+              <h1 className="header-name">
+                {name || <span style={{ fontStyle: "italic", opacity: 0.4, fontSize: "0.8em" }}>your name</span>}
+              </h1>
             </div>
-            <span className="header-symbol" onClick={() => onOpenSettings && onOpenSettings()} style={{ cursor: "pointer" }}>⚸</span>
+            <span
+              className="header-symbol"
+              onClick={() => onOpenSettings && onOpenSettings()}
+              style={{ cursor: "pointer" }}
+            >
+              ⚸
+            </span>
           </div>
 
           {/* Cycle card */}
@@ -888,8 +736,8 @@ export default function HomeScreen({
                   <div className="cycle-phase-badge">
                     <span className="phase-name">{phase}</span>
                     <div className="phase-dot-row">
-                      {phaseDots.map((a, i) => (
-                        <div key={i} className={`phase-dot ${a ? "active" : ""}`} />
+                      {phaseDots.map((active, i) => (
+                        <div key={i} className={`phase-dot ${active ? "active" : ""}`} />
                       ))}
                     </div>
                   </div>
@@ -897,13 +745,12 @@ export default function HomeScreen({
                 <div className="cycle-bar">
                   <div className="cycle-bar-fill" style={{ width: `${progress}%` }} />
                   {cycleDay > cycleDays && (
-                    <div className="cycle-bar-extended" style={{
+                    <div style={{
                       width: `${Math.min(((cycleDay - cycleDays) / 14) * 100, 100)}%`,
-                      background: 'rgba(232, 180, 196, 0.3)',
-                      height: '100%',
-                      position: 'absolute',
-                      top: 0,
-                      left: '100%'
+                      background: "rgba(232,180,196,0.3)",
+                      height: "100%",
+                      position: "absolute",
+                      top: 0, left: "100%",
                     }} />
                   )}
                 </div>
@@ -914,12 +761,22 @@ export default function HomeScreen({
               </>
             ) : (
               <div style={{ textAlign: "center", padding: "16px 0" }}>
-                <p style={{ fontFamily: "'Crimson Pro',serif", fontStyle: "italic", fontSize: 15, color: "var(--ink-ghost)", marginBottom: 10 }}>
+                <p style={{
+                  fontFamily: "'Crimson Pro',serif", fontStyle: "italic",
+                  fontSize: 15, color: "var(--ink-ghost)", marginBottom: 10,
+                }}>
                   Tell Lilith when your last period started to track your cycle.
                 </p>
                 <button
                   onClick={() => setActiveNav("lilith")}
-                  style={{ padding: "8px 18px", border: "1px solid rgba(196,176,232,0.3)", borderRadius: 1, background: "transparent", fontFamily: "'DM Sans',sans-serif", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--lav)", cursor: "pointer" }}>
+                  style={{
+                    padding: "8px 18px",
+                    border: "1px solid rgba(196,176,232,0.3)", borderRadius: 1,
+                    background: "transparent", fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase",
+                    color: "var(--lav)", cursor: "pointer",
+                  }}
+                >
                   Tell Lilith ✦
                 </button>
               </div>
@@ -927,25 +784,27 @@ export default function HomeScreen({
           </div>
         </div>
 
-        {/* ── LILITH MESSAGE ── */}
+        {/* LILITH MESSAGE */}
         <div className="lilith-section">
-          <div className="lilith-card" onClick={() => setActiveNav("lilith")} style={{ cursor: "pointer" }}>
+          <div
+            className="lilith-card"
+            onClick={() => setActiveNav("lilith")}
+            style={{ cursor: "pointer" }}
+          >
             <div className="lilith-header">
               <div className="lilith-dot" />
               <span className="lilith-label">Lilith</span>
               <span className="lilith-time">Today</span>
             </div>
-            <p className="lilith-text">
-              {generateDailyHook()}
-            </p>
+            <p className="lilith-text">{generateDailyHook()}</p>
           </div>
         </div>
 
-        {/* ── FEED ── */}
+        {/* TODAY'S FEED */}
         <div className="feed-section">
           <div className="feed-header">
             <span className="feed-title">Today's notes</span>
-            <span className="feed-date">{today}</span>
+            <span className="feed-date">{todayLabel}</span>
           </div>
 
           {notes.length === 0 ? (
@@ -976,7 +835,7 @@ export default function HomeScreen({
           )}
         </div>
 
-        {/* ── QUICK NOTE BAR ── */}
+        {/* QUICK NOTE BAR */}
         <div className="quick-note-bar">
           <div className="quick-note-input-row">
             <input
@@ -987,13 +846,17 @@ export default function HomeScreen({
               onFocus={handleQuickFocus}
               onKeyDown={e => { if (e.key === "Enter" && quickText.trim()) handleQuickSend(); }}
             />
-            <button className="quick-note-send" onClick={handleQuickSend} disabled={!quickText.trim()}>
+            <button
+              className="quick-note-send"
+              onClick={handleQuickSend}
+              disabled={!quickText.trim()}
+            >
               ↑
             </button>
           </div>
         </div>
 
-        {/* ── BOTTOM NAV ── */}
+        {/* BOTTOM NAV */}
         <div className="bottom-nav">
           {[
             { id: "home", icon: "⚸", label: "Home" },
@@ -1001,17 +864,23 @@ export default function HomeScreen({
             { id: "lilith", icon: "✦", label: "Lilith" },
             { id: "calendar", icon: "◫", label: "Cycle" },
           ].map(item => (
-            <button key={item.id} className={`nav-item ${activeNav === item.id ? "active" : ""}`}
-              onClick={() => setActiveNav(item.id)}>
+            <button
+              key={item.id}
+              className={`nav-item ${activeNav === item.id ? "active" : ""}`}
+              onClick={() => setActiveNav(item.id)}
+            >
               <span className="nav-icon navbar-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
             </button>
           ))}
         </div>
 
-        {/* ── MODAL ── */}
+        {/* NOTE MODAL */}
         {modalOpen && (
-          <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}>
+          <div
+            className="modal-overlay"
+            onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}
+          >
             <div className="modal-sheet">
               <div className="modal-handle" />
               <p className="modal-title">Add to today · {getTime()}</p>
@@ -1026,16 +895,22 @@ export default function HomeScreen({
               <p className="modal-tags-label">Tag this note</p>
               <div className="modal-tags">
                 {TAG_OPTIONS.map(t => (
-                  <button key={t.value}
+                  <button
+                    key={t.value}
                     className={`modal-tag-btn ${selectedTags.includes(t.value) ? t.cls : ""}`}
-                    onClick={() => toggleTag(t.value)}>
+                    onClick={() => toggleTag(t.value)}
+                  >
                     {t.label}
                   </button>
                 ))}
               </div>
               <div className="modal-footer">
                 <button className="modal-cancel" onClick={() => setModalOpen(false)}>Cancel</button>
-                <button className="modal-save" onClick={handleModalSave} disabled={!modalText.trim()}>
+                <button
+                  className="modal-save"
+                  onClick={handleModalSave}
+                  disabled={!modalText.trim()}
+                >
                   Save note
                 </button>
               </div>

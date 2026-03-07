@@ -1,0 +1,756 @@
+// ── OPENROUTER SERVICE ───────────────────────────────────────────────────────
+// Real integration with OpenRouter API for Lilith chat using Gemini Flash Lite
+// ⚠️ HACKATHON VERSION: Contains hardcoded API key for demo purposes
+// ⚠️ THIS FILE IS GIT-IGNORED FOR SECURITY
+
+import { buildLilithSystemPrompt } from '../components/lilithPrompt.js';
+
+const API_BASE = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'google/gemini-2.0-flash-lite-001'; // MODEL WITH 200 OK
+
+// 🔑 API KEY
+const OPENROUTER_KEY_DEV = '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';
+
+/**
+ * Send a message to Lilith through OpenRouter API using Gemini Flash Lite
+ * @param {string} userMessage - The user's message
+ * @param {Array} conversationHistory - Array of previous messages
+ * @param {Object} userProfile - User's complete profile data
+ * @param {Array} dailyLogs - Recent daily logs/notes
+ * @param {string} screenContext - 'home', 'cycle', or 'chat'
+ * @returns {Promise<string>} Lilith's response
+ */
+/**
+ * Detect user intentions and trigger cycle events
+ * @param {string} text - User's message text
+ * @param {function} updateCycleStart - Function to update cycle start date
+ * @param {function} updateProfile - Function to update user profile
+ * @returns {Object|null} Detected intent or null if none found
+ */
+/**
+ * Enhance the system prompt with smart intent detection capabilities
+ * @param {string} basePrompt - The base Lilith system prompt
+ * @returns {string} Enhanced prompt with intent detection instructions
+ */
+function enhanceSystemPromptWithIntents(basePrompt, userProfile = {}) {
+    const cycleContext = userProfile.cycleDay ?
+        `The user is currently on day ${userProfile.cycleDay} of their cycle` +
+        (userProfile.phase ? ` (${userProfile.phase} phase)` : '') + '. ' : '';
+
+    // Only active medications
+    const activeMedications = userProfile.medications && Array.isArray(userProfile.medications)
+        ? userProfile.medications.filter(m => !m.status || m.status === 'active')
+        : [];
+
+    const medicationContext = activeMedications && activeMedications.length > 0 ?
+        `Current medications: ${activeMedications.map(m => typeof m === 'string' ? m : `${m.name}${m.dose ? ` (${m.dose})` : ''}`).join(', ')}. `
+        : 'No active medications currently logged. ';
+    const intentEnhancement = `
+
+CURRENT CONTEXT FOR RESPONSES:
+${cycleContext}${medicationContext}
+
+Use this context to make your advice precise and relevant to their current cycle day and medication status.
+
+CRITICAL: SMART INTENT DETECTION
+If the user mentions any of these intents, respond with JSON in your first paragraph, then continue with normal response:
+
+1. PERIOD STARTED: "period started", "my period came", "day 1", "menstruation started", "ya bajó", "me vino", "estoy sangrando"
+   → Return: {"intent": "PERIOD_START", "confidence": 0.9}
+
+2. MEDICATION CHANGES: "started taking", "stopped medication", "new pill", "changed dose", "doctor prescribed", "dejé de tomar", "empecé a tomar"
+   → Return: {"intent": "MEDICATION_CHANGE", "medication": "detected_name", "change": "start/stop/dose_change", "confidence": 0.8}
+
+3. SYMPTOM TRACKING: mentions specific physical or emotional symptoms with severity
+   → Return: {"intent": "SYMPTOM_LOG", "symptoms": ["list"], "confidence": 0.7}
+
+EXAMPLE RESPONSES:
+User: "period started"
+You: {"intent": "PERIOD_START", "confidence": 0.95}
+
+Great! I've noted that your period started today. This resets your cycle to Day 1. Your body is beginning the menstrual phase - now is the time for rest and self-care...
+
+User: "I stopped taking my birth control"  
+You: {"intent": "MEDICATION_CHANGE", "medication": "birth control", "change": "stop", "confidence": 0.9}
+
+That's a significant change! Stopping birth control can affect your cycle for several months. I'll track how your natural cycle emerges...
+
+CRITICAL: Always respond directly to what the user actually said. If they mention specific food, activities, or feelings, acknowledge them specifically. Don't ask generic questions when they've already provided specific information.
+
+CONTEXT PRESERVATION RULES:
+1. If user mentions specific food/activity/feeling → acknowledge it directly
+2. If user provides details → build upon them, don't ignore them
+3. If user asks a question → answer it specifically, don't change topic
+4. Always reference their exact words when relevant
+
+Examples:
+User: "I want to eat popcorn"
+You: "Enjoy that popcorn! Salty cravings are common in the luteal phase due to progesterone..."
+
+User: "I'm feeling anxious about work"  
+You: "Work anxiety can definitely spike during certain cycle phases. You're on day X..."
+
+User: "My cramps are really bad today"
+You: "Those cramps sound intense. On day X of your cycle, cramping is often..."
+
+Always include JSON when you detect an intent, but continue with your caring, intelligent Lilith response that directly addresses what they said.`;
+
+    return basePrompt + intentEnhancement;
+}
+
+export function detectUserIntent(text, updateCycleStart, updateProfile) {
+
+    // Intent 1: Period started / Day 1 detection
+    const periodStartPatterns = [
+        /period started?/i,
+        /my period started?/i,
+        /day 1/i,
+        /first day/i,
+        /bleeding started?/i,
+        /flow started?/i,
+        /got my period/i,
+        /period came/i,
+        /menstruat\w+ started?/i
+    ];
+
+    for (const pattern of periodStartPatterns) {
+        if (pattern.test(text)) {
+            if (updateCycleStart) {
+                updateCycleStart(new Date());
+            }
+            return {
+                type: 'CYCLE_START',
+                message: 'Cycle start detected and updated!',
+                confidence: 0.9
+            };
+        }
+    }
+
+    // Intent 2: Medication changes detection  
+    const medicationPatterns = [
+        /start\w+ taking/i,
+        /stop\w+ taking/i,
+        /new medication/i,
+        /new pill/i,
+        /chang\w+ medication/i,
+        /switch\w+ to/i,
+        /prescrib\w+/i,
+        /doctor gave me/i,
+        /(increase|decrease)\w+ dose/i
+    ];
+
+    for (const pattern of medicationPatterns) {
+        if (pattern.test(text)) {
+            // This could trigger a profile update with medication changes
+            console.log('Medication change detected in message:', text);
+            return {
+                type: 'MEDICATION_CHANGE',
+                message: 'Medication change detected in conversation',
+                confidence: 0.8
+            };
+        }
+    }
+
+    return null; // No intent detected
+}
+
+export async function sendMessageToLilith(
+    userMessage,
+    conversationHistory = [],
+    userProfile = {},
+    dailyLogs = [],
+    screenContext = 'chat',
+    intentCallbacks = {} // New parameter for intent callbacks
+) {
+    console.log('🎯 Usando configuración que funcionó con 200 OK');
+    console.log('🤖 Modelo:', MODEL);
+    console.log('🔑 API Key:', OPENROUTER_KEY_DEV.substring(0, 12) + '...');
+
+    // Detect user intentions before sending to AI
+    const detectedIntent = detectUserIntent(
+        userMessage,
+        intentCallbacks.updateCycleStart,
+        intentCallbacks.updateProfile
+    );
+
+    if (detectedIntent) {
+        console.log('🎯 Intent detected:', detectedIntent);
+        // You can add more automated responses here based on intent type
+    }
+
+    try {
+        // Build the system prompt with smart intent detection and current context
+        const systemPrompt = enhanceSystemPromptWithIntents(
+            buildLilithSystemPrompt(userProfile, dailyLogs, screenContext),
+            userProfile
+        );
+
+        // Construir historial de mensajes sin [object Object]
+        const messages = buildMessageHistory(conversationHistory, userMessage, systemPrompt);
+
+        const requestBody = {
+            model: MODEL,
+            messages: messages,
+            max_tokens: 1000,
+            temperature: 0.7
+        };
+        const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + OPENROUTER_KEY_DEV.trim(),
+                'HTTP-Referer': 'http://localhost:3000',
+                'X-Title': 'Lilith Cycle Journal',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ OpenRouter API error:', errorData);
+            throw new Error(`API request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+            return data.choices[0].message.content;
+        } else {
+            console.error('❌ Unexpected API response format:', data);
+            throw new Error('Invalid response format from API');
+        }
+
+    } catch (error) {
+        console.error('❌ Error calling OpenRouter API:', error);
+
+        // Return user-friendly error messages
+        if (error.message.includes('API request failed: 401')) {
+            return "Verify API key.";
+        } else if (error.message.includes('API request failed: 429')) {
+            return "Lilith is receiving too many requests. Please give me a moment and try again.";
+        } else if (error.message.includes('API request failed: 500')) {
+            return "Something went wrong on Lilith's side. Please try again in a moment.";
+        } else {
+            return "Lilith is having connection issues. Please check your internet and try again.";
+        }
+    }
+}
+
+/**
+ * @param {Array} history - Previous conversation messages
+ * @param {string} currentMessage - Current user message
+ * @param {string} systemPrompt - System prompt to include
+ * @returns {Array} Formatted message array for API
+ */
+function buildMessageHistory(history, currentMessage, systemPrompt) {
+    const messages = [];
+
+    // First Lilith's message
+    messages.push({
+        role: 'system',
+        content: systemPrompt
+    });
+
+    const recentHistory = history.slice(-10);
+
+    for (const msg of recentHistory) {
+        let content = '';
+        if (typeof msg === 'string') {
+            content = msg;
+        } else if (msg.text) {
+            content = msg.text;
+        } else if (msg.content) {
+            content = msg.content;
+        } else if (msg.message) {
+            content = msg.message;
+        } else {
+            content = JSON.stringify(msg);
+        }
+
+        if (msg.role === 'user') {
+            messages.push({
+                role: 'user',
+                content: content
+            });
+        } else if (msg.role === 'lilith' || msg.role === 'assistant') {
+            messages.push({
+                role: 'assistant',
+                content: content
+            });
+        }
+    }
+    messages.push({
+        role: 'user',
+        content: currentMessage
+    });
+
+    console.log('📜 Messages construidos:', messages.length, 'total');
+    return messages;
+}
+
+/**
+ * @param {any} value 
+ * @returns {string|null} 
+ */
+export function safeProfileString(value) {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) {
+        return value.map(v =>
+            typeof v === "string" ? v : v.name || v.label || JSON.stringify(v)
+        ).join(", ");
+    }
+    if (typeof value === "object") {
+        return value.name || value.label || Object.values(value).join(", ");
+    }
+    return String(value);
+}
+
+/**
+ * @returns {string}
+ */
+export function getMexicanDate() {
+    const now = new Date();
+    const mexicoTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Mexico_City" }));
+
+    const year = mexicoTime.getFullYear();
+    const month = String(mexicoTime.getMonth() + 1).padStart(2, '0');
+    const day = String(mexicoTime.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * @returns {string} 
+ */
+export function getMexicanTimestamp() {
+    const now = new Date();
+    return now.toLocaleString("es-MX", {
+        timeZone: "America/Mexico_City",
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+/**
+ 
+ * @param {Function} onUpdate 
+ * @param {string} text 
+ * @param {number} delay
+ * @returns {Promise}
+ */
+export function simulateTyping(onUpdate, text, delay = 30) {
+    return new Promise((resolve) => {
+        let i = 0;
+        const timer = setInterval(() => {
+            if (i <= text.length) {
+                onUpdate(text.substring(0, i));
+                i++;
+            } else {
+                clearInterval(timer);
+                resolve();
+            }
+        }, delay);
+    });
+}
+
+/**
+ * Extract health insights from chat history for medical reports
+ * @param {Array} chatHistory - Chat messages from localStorage
+ * @returns {string} Formatted health insights from conversations
+ */
+function extractHealthInsightsFromChat(chatHistory) {
+    if (!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) {
+        return null;
+    }
+
+    // Keywords for different health categories
+    const healthCategories = {
+        sexual: ['libido', 'sex', 'sexual', 'intimacy', 'arousal', 'desire', 'orgasm', 'pain during sex', 'dryness'],
+        emotional: ['anxiety', 'depression', 'mood', 'stress', 'emotional', 'cry', 'sad', 'angry', 'irritable'],
+        physical: ['pain', 'cramp', 'headache', 'migraine', 'bloat', 'breast tenderness', 'acne', 'weight'],
+        energy: ['tired', 'fatigue', 'energy', 'exhausted', 'alert', 'motivated', 'sluggish'],
+        sleep: ['sleep', 'insomnia', 'restless', 'nightmare', 'wake up', 'bedtime'],
+        digestive: ['digestion', 'stomach', 'nausea', 'constipation', 'diarrhea', 'appetite', 'hungry'],
+        lifestyle: ['exercise', 'work', 'relationship', 'stress', 'travel', 'diet', 'alcohol', 'smoking']
+    };
+
+    const insights = [];
+    const userMessages = chatHistory.filter(msg => msg.sender === 'user' && msg.content);
+
+    // Extract key health mentions from user messages
+    userMessages.forEach(msg => {
+        const content = msg.content.toLowerCase();
+
+        Object.entries(healthCategories).forEach(([category, keywords]) => {
+            keywords.forEach(keyword => {
+                if (content.includes(keyword)) {
+                    // Extract the sentence containing the keyword for context
+                    const sentences = msg.content.split(/[.!?]+/);
+                    const relevantSentence = sentences.find(sentence =>
+                        sentence.toLowerCase().includes(keyword)
+                    );
+
+                    if (relevantSentence && relevantSentence.trim().length > 10) {
+                        insights.push(`${category.toUpperCase()}: "${relevantSentence.trim()}"`);
+                    }
+                }
+            });
+        });
+    });
+
+    // Remove duplicates and limit to most recent 10 insights
+    const uniqueInsights = [...new Set(insights)].slice(-10);
+
+    return uniqueInsights.length > 0
+        ? uniqueInsights.join('\n')
+        : null;
+}
+
+/**
+ * Generates insights using AI
+ * @param {Array} journalData - journal entries with full text content
+ * @param {Object} userProfile - complete user profile for context
+ * @param {string} reportType - Report type: 'medical', 'nutritional', 'fitness'
+ * @param {Array} chatContext - Chat history for additional context
+ * @returns {Promise<string>} Markdown report
+ */
+export async function generateMedicalReport(journalData, userProfile, reportType = 'medical', chatContext = null) {
+    console.log('🏥 Generating medical report:', reportType);
+    console.log('📊 Journal data entries:', journalData?.length || 0);
+    console.log('👤 User profile:', userProfile?.name || 'No name');
+    console.log('💬 Chat context:', chatContext ? 'Available' : 'Not provided');
+
+    try {
+        // Build specialized system prompt based on report type
+        const systemPrompt = buildMedicalReportPrompt(reportType, userProfile);
+
+        // Prepare journal data with FULL TEXT CONTENT
+        const detailedJournalData = formatJournalDataWithFullContent(journalData, userProfile);
+
+        // ── CHAT CONTEXT INTEGRATION ──────────────────────────────────────────
+        // Extract meaningful health insights from chat history
+        const chatInsights = extractHealthInsightsFromChat(chatContext);
+
+        // Create user message with complete data including chat insights
+        const userMessage = `Analyze the following menstrual cycle tracking data and generate a ${reportType} report focused on PATTERN DETECTION (not diagnosis):
+
+## Journal Entries:
+${detailedJournalData}
+
+${chatInsights ? `## Additional Context from Health Conversations:
+${chatInsights}
+
+** IMPORTANT: If the user mentioned intimate topics like sexual health, libido changes, pain during sex, relationship dynamics, or emotional patterns in conversations, these are CRITICAL data points that must be included in pattern analysis and recommendations. **` : ''}
+
+Please provide a concise analysis in professional Markdown format that incorporates ALL available data sources.`;
+
+        const messages = [
+            {
+                role: 'system',
+                content: systemPrompt
+            },
+            {
+                role: 'user',
+                content: userMessage
+            }
+        ];
+
+        const requestBody = {
+            model: MODEL,
+            messages: messages,
+            max_tokens: 1500,
+            temperature: 0.2
+        };
+
+        const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + OPENROUTER_KEY_DEV.trim(),
+                'HTTP-Referer': 'http://localhost:3000',
+                'X-Title': 'Lilith Medical Reports',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ OpenRouter API error for medical report:', errorData);
+            throw new Error(`Medical report API request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+            return data.choices[0].message.content;
+        } else {
+            console.error('❌ Unexpected medical report API response format:', data);
+            throw new Error('Invalid response format from medical report API');
+        }
+
+    } catch (error) {
+        console.error('❌ Error generating medical report:', error);
+
+        // Return user-friendly error messages in English
+        if (error.message.includes('API request failed: 401')) {
+            return "Authentication error when generating medical report. Please check configuration.";
+        } else if (error.message.includes('API request failed: 429')) {
+            return "Too many report requests. Please wait a moment before generating another report.";
+        } else if (error.message.includes('API request failed: 500')) {
+            return "Server error when generating medical report. Please try again.";
+        } else {
+            return "Connection error when generating medical report. Please check your internet and try again.";
+        }
+    }
+}
+
+/**
+ * @param {string} reportType - 'medical', 'nutritional', 'fitness'
+ * @param {Object} userProfile 
+ * @returns {string} System prompt
+ */
+
+function buildMedicalReportPrompt(reportType, userProfile, medicationData) {
+    const physical = userProfile?.physicalConditions || [];
+    const neuro = userProfile?.neuroConditions || [];
+    const conditions = [...physical, ...neuro];
+    const conditionText = conditions.length > 0 ? conditions.join(', ') : 'None';
+
+    // physical activity
+    const hasActivity = userProfile?.exerciseTypes && userProfile.exerciseTypes.length > 0;
+    const mainActivity = hasActivity ? userProfile.exerciseTypes[0] : 'daily wellness/sedentary';
+    const allActivities = userProfile?.exerciseTypes?.join(', ') || 'General movement';
+
+    // diet and medication
+    const userDiet = userProfile?.nutrition?.join(', ') || 'General';
+    const supplements = userProfile?.nutritionExtra || 'None';
+    const activeMeds = medicationData?.activeMedications?.join(', ') || 'None reported';
+    const recentChanges = medicationData?.recentMovements?.join(', ') || 'None';
+
+    const baseContext = `You are Lilith, a supportive but highly technical health analyst. 
+User Profile: ${userProfile?.name}.
+Diagnosed with: ${conditionText}.
+Activity Level: ${allActivities}.
+Medications: ${activeMeds}.
+Recent Changes: ${recentChanges}.
+Diet: ${userDiet}.
+Supplements: ${supplements}.
+
+STRICT RULES:
+1. **NO FLUFF**: Be extremely concise. Max 2-3 bullets per section.
+2. **CLEAN OUTPUT**: Do not include instructions in parentheses.
+3. **INTEGRATION**: Connect how ${allActivities}, ${activeMeds}, and ${userDiet} interact with ${conditionText}.
+`;
+
+    const reportPrompts = {
+        medical: `${baseContext}
+## 🚨 Priorities & Red Flags
+(Immediate concerns. Flag if ${activeMeds} efficacy drops or if ${mainActivity} is causing debilitating pain/fatigue.)
+
+## 🧬 The "Condition-Cycle" Connection
+(Analyze intersection of ${conditionText} and cycle. Note if ${userDiet} or ${mainActivity} are mitigating symptoms.)
+
+## 📊 Phase Breakdown (Top Patterns)
+**Luteal (Days 15-28):** [Top 2 issues + Medication/Activity response]
+**Menstrual (Days 1-7):** [Top 2 issues + Medication/Activity response]
+**Follicular (Days 8-14):** [Key energy markers + Efficacy]
+
+## 💊 Medication & Efficacy Audit
+- **Pattern Detection:** [Analyze efficacy of ${activeMeds} vs ${conditionText} symptoms across phases.]
+- **Impact of Lifestyle:** [How ${mainActivity} or ${userDiet} affects medication absorption/side effects.]
+
+## 💡 Ask your Doctor
+(2 punchy questions about adjusting treatment based on these patterns.)
+
+## 🔍 Mini Data Hunt
+(One sentence to find a trigger in the journal.)`,
+
+        performance: `${baseContext}
+ROLE: Functional Nutrition & Cycle Syncing Performance Coach.
+FOCUS: The Synergy of Fuel, Movement, and Medication.
+
+## ⚡ Energy & Mental Focus Strategy
+(Analyze how ${activeMeds} and ${userDiet} fueled ${allActivities} this month. Focus on stamina and ADHD clarity. Max 40 words.)
+
+## 🏋️ Fueling & Movement Patterns
+- **🚀 The Performance Win:** [Identify a specific food or habit that boosted ${mainActivity} or dopamine.]
+- **⚠️ The Sabotage:** [Identify the trigger—food, lack of movement, or med crash—that hindered performance.]
+- **🧘 Recovery & Inflammation:** [Analyze if ${physical.join('/')} markers are improving with ${mainActivity}. Check if ${supplements} are aiding recovery.]
+
+## 🔄 Cycle-Syncing (Current & Next Phase)
+**Current (${userProfile?.currentPhase || 'Phase'}):** - **Fuel:** [Nutrition swap for ${conditionText} and med support].
+- **Movement:** [Intensity adjustment for ${mainActivity}].
+**Next Phase Prep:**
+- **The Hack:** [Precise habit to prevent the ${conditionText} crash. ${!hasActivity ? 'Suggest 10-min gentle movement for metabolic health.' : ''}]
+
+## 🗺️ Mind-Body Map (Impact Visual)
+(Use 🟢 for Boosts, 🔴 for Crashes, 🔵 for Med Efficacy, 🏃 for Movement impact)
+- [Emoji] [Activity/Food/Med] + [Phase]: [Short Result]
+
+## 💡 Lilith’s Performance Rule
+(One rule: "On ${mainActivity} days, prioritize [X] to stabilize [Condition] and maximize [Medication].")
+
+## 🔍 Detective Mission
+(One challenge: "Try [Action/Food] on Day [X]—does your ${mainActivity} performance or focus improve?")`,
+
+        'mental-health': `${baseContext}
+ROLE: Neuro-Psychological Pattern Analyst & Stress Coach.
+FOCUS: Cognitive Load, RSD, and Environmental Triggers.
+
+## 🧠 Neuro-Hormonal Observations
+- **Executive Function:** [Focus/Task initiation for ${neuro.join('/')} vs cycle phase.]
+- **Sensory & Social Battery:** [Note overload triggers and social withdrawal patterns.]
+- **Emotional Regulation:** [Analyze RSD episodes or mood crashes.]
+
+## 🔍 External Stressors & Triggers
+- **Life Context:** [Identify if Work, Relationships, or Money triggered anxiety or ${neuro[0]} symptoms.]
+- **The "Why" Detective:** [Did a stressor at [Work/Home] cause the crash, or was it a drop in ${activeMeds} efficacy?]
+
+## ⚙️ Executive Function & Sleep Audit
+- **Focus & Sleep:** [Impact of stress vs ${activeMeds} on rest and cognitive clarity.]
+
+## 📊 Emotional Mapping by Phase
+- **Luteal (High Vulnerability):** [RSD and Burnout patterns.]
+- **Follicular (Dopamine Window):** [Motivation and social engagement.]
+
+## 💡 The Resiliency Rule
+(One rule: "On Day [X], your stress tolerance is lower; prioritize [Coping Skill/Movement] to protect your battery.")
+
+## 🔍 Detective Mission
+(One sentence: "Check Day [X]—did the conflict with [Person/Job] trigger the RSD, or was it a metabolic crash?")`
+    };
+
+    const finalReportType = (reportType === 'nutritional' || reportType === 'fitness' || reportType === 'nutritionist' || reportType === 'trainer') ? 'performance' : reportType;
+    return reportPrompts[finalReportType] || reportPrompts.medical;
+}
+/**
+ * @param {Array} journalData 
+ * @param {Object} userProfile 
+ * @returns {string} 
+ */
+function formatJournalDataWithFullContent(journalData, userProfile) {
+    if (!journalData || journalData.length === 0) {
+        return "No journal data available for analysis.";
+    }
+
+    // 🏋️ Extract exercise types from profile
+    const exerciseTypes = userProfile?.exerciseTypes || [];
+    const exerciseFreq = userProfile?.exerciseFreq || 'Not specified';
+
+    let dataPackage = `USER PROFILE:
+Name: ${userProfile?.name || 'Not specified'}
+Age: ${userProfile?.age || 'Not specified'}
+Average cycle length: ${userProfile?.averageCycleLength || 'Not specified'} days
+Last period date: ${userProfile?.lastPeriodDate || userProfile?.lastPeriod || 'Not specified'}
+Current medications: ${userProfile?.medications ? safeProfileString(userProfile.medications) : 'Not specified'}
+
+🏋️ TRAINING PROFILE:
+Primary Activities: ${exerciseTypes.length > 0 ? exerciseTypes.join(', ') : 'Not specified'}
+Exercise Frequency: ${exerciseFreq}
+Current Cycle Phase: ${userProfile?.currentPhase || 'Unknown'}
+Current Cycle Day: ${userProfile?.currentCycleDay || 'Unknown'}
+
+JOURNAL DATA (${journalData.length} entries with FULL TEXT CONTENT):
+`;
+
+    // Sort by date (most recent first)
+    const sortedEntries = [...journalData].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Take recent entries for analysis (up to 45 for comprehensive pattern detection)
+    const recentEntries = sortedEntries.slice(0, 45);
+
+    recentEntries.forEach((entry, index) => {
+        dataPackage += `\n📅 DATE: ${entry.date}`;
+
+        // 🏋️ Include cycle context for phase-based analysis
+        if (entry.cycleDay || entry.cycleDayText) {
+            dataPackage += ` | CYCLE DAY: ${entry.cycleDayText || `Day ${entry.cycleDay}`}`;
+        }
+        if (entry.cyclePhase) {
+            dataPackage += ` | PHASE: ${entry.cyclePhase}`;
+        }
+        dataPackage += `\n`;
+
+        if (entry.flow) {
+            dataPackage += `   🩸 FLOW: ${entry.flow}\n`;
+        }
+
+        if (entry.symptoms && entry.symptoms.length > 0) {
+            dataPackage += `   🩺 SYMPTOMS: ${entry.symptoms.map(s => safeProfileString(s)).join(', ')}\n`;
+        }
+
+        if (entry.mood) {
+            dataPackage += `   😊 MOOD: ${safeProfileString(entry.mood)}\n`;
+        }
+
+        if (entry.energy) {
+            dataPackage += `   ⚡ ENERGY LEVEL: ${entry.energy}\n`;
+        }
+
+        if (entry.medications && entry.medications.length > 0) {
+            dataPackage += `   💊 MEDICATIONS TAKEN: ${entry.medications.map(m => safeProfileString(m)).join(', ')}\n`;
+        }
+
+        // 🏋️ ENHANCED: More detailed exercise tracking
+        if (entry.exercise) {
+            dataPackage += `   🏋️ EXERCISE: ${safeProfileString(entry.exercise)}`;
+
+            // Add exercise-specific details if available
+            if (entry.exerciseIntensity) {
+                dataPackage += ` | Intensity: ${entry.exerciseIntensity}`;
+            }
+            if (entry.exerciseDuration) {
+                dataPackage += ` | Duration: ${entry.exerciseDuration}`;
+            }
+            if (entry.exerciseType) {
+                dataPackage += ` | Type: ${entry.exerciseType}`;
+            }
+            dataPackage += `\n`;
+        }
+
+        // CRITICAL: Include the FULL TEXT of user notes - this is where patterns are hidden
+        if (entry.text && entry.text.trim()) {
+            dataPackage += `   📝 FULL NOTE TEXT: "${entry.text.trim()}"\n`;
+        }
+
+        if (entry.notes && entry.notes.trim()) {
+            dataPackage += `   📝 ADDITIONAL NOTES: "${entry.notes.trim()}"\n`;
+        }
+
+        // Include any other text fields that might contain important data
+        if (entry.content && entry.content.trim()) {
+            dataPackage += `   📝 CONTENT: "${entry.content.trim()}"\n`;
+        }
+
+        if (entry.description && entry.description.trim()) {
+            dataPackage += `   📝 DESCRIPTION: "${entry.description.trim()}"\n`;
+        }
+
+        // Add separator for readability
+        dataPackage += `   ──────────────────\n`;
+    });
+
+    return dataPackage;
+}
+
+/**
+ * @returns {Object}
+ */
+export function getAPIConfig() {
+    return {
+        model: MODEL,
+        hasApiKey: true,
+        endpoint: API_BASE,
+        environment: 'Configuración que funcionó (200 OK)',
+        keySource: 'Hardcoded (Hackathon Mode)',
+        apiKeyPreview: OPENROUTER_KEY_DEV.substring(0, 12) + '...',
+        timezone: 'America/Mexico_City (CST / GMT-6)',
+        currentDate: getMexicanDate(),
+        currentTimestamp: getMexicanTimestamp()
+    };
+}

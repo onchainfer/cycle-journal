@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { generateMedicalReport } from "../services/anthropic.js";
+import { generateMedicalReport } from "../services/openrouter.js";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');`;
 
@@ -1057,7 +1057,7 @@ export default function ProfileSettings({
 
   const exportUserData = () => {
     try {
-      // 1. ESCÁNER DE REPORTES (Todos los históricos que empiecen con lilith_report_)
+      // 1. REPORT SCANNER (All history starting with lilith_report_)
       const allCachedReports = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -1075,26 +1075,26 @@ export default function ProfileSettings({
         chatHistory = storedChat ? JSON.parse(storedChat) : [];
       } catch (e) { console.warn("No chat history found"); }
 
-      // 3. PROCESAMIENTO DE MEDICACIÓN (Usando tu lógica generateMedicationReport)
+      // 3. MEDICATION ANALYSIS
       const medicationReport = generateMedicationReport();
 
-      // 4. CONSTRUIR EL PAQUETE MAESTRO
+      // 4. BUILD MASTER PACKAGE
       const dataToExport = {
         user: profile?.name || "Fer",
         exportDate: new Date().toISOString(),
 
-        // Datos de Identidad y Ciclo
+        // Identity and cycle
         profile: profile,
         cycleHistory: cycleHistory,
         currentCycle: currentCycle,
         healthTeam: healthTeam,
         notes: notes,
 
-        // Salud y Medicación (Procesada y Cruda)
-        medicationSummary: medicationReport, // El resumen limpio (Activas, Movimientos, etc.)
-        allHealthChanges: changes,           // Todos los logs de cambios originales
+        // Health and medication
+        medicationSummary: medicationReport,
+        allHealthChanges: changes,
 
-        // Historiales y Reportes
+        // History and reports
         cachedReports: allCachedReports,
         chatHistory: chatHistory,
 
@@ -1105,7 +1105,7 @@ export default function ProfileSettings({
         }
       };
 
-      // 5. GENERAR DESCARGA
+      // 5. DOWNLOAD
       const jsonString = JSON.stringify(dataToExport, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -1119,9 +1119,8 @@ export default function ProfileSettings({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      console.log("✅ Full Clinical Export Complete");
+
     } catch (error) {
-      console.error("❌ Export failed:", error);
       alert("Error al generar el respaldo médico.");
     }
   };
@@ -1356,12 +1355,9 @@ export default function ProfileSettings({
   // Cache keys for different report types
   const getCacheKey = (reportType) => {
     const userId = profile?.name || 'default_user';
-    const dateStr = new Date().toISOString().split('T')[0]; // Ejemplo: 2026-03-06
-    // Ahora la llave es única por día: lilith_report_monthly_Fer_2026-03-06
+    const dateStr = new Date().toISOString().split('T')[0];
     return `lilith_report_${reportType}_${userId}_${dateStr}`;
   };
-
-  // Check if cached report is still valid (less than 24 hours old)
   const isCacheValid = (cachedReport) => {
     if (!cachedReport || !cachedReport.timestamp) return false;
 
@@ -1384,7 +1380,6 @@ export default function ProfileSettings({
 
     try {
       localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-      console.log('💾 Report cached successfully:', reportType);
     } catch (error) {
       console.warn('⚠️ Failed to cache report:', error);
     }
@@ -1404,11 +1399,9 @@ export default function ProfileSettings({
       if (!isCacheValid(parsed)) {
         // Remove expired cache
         localStorage.removeItem(cacheKey);
-        console.log('🗑️ Removed expired cache for:', reportType);
         return null;
       }
 
-      console.log('✨ Loaded report from cache:', reportType);
       return parsed;
     } catch (error) {
       console.warn('⚠️ Failed to load cached report:', error);
@@ -1443,7 +1436,6 @@ export default function ProfileSettings({
       localStorage.removeItem(key);
     });
 
-    console.log('🧹 All report caches cleared');
   };
 
   // Mapeo de tipos de reportes del componente a tipos de IA
@@ -1458,7 +1450,6 @@ export default function ProfileSettings({
 
   // Enhanced report generation with caching system
   const generateAIReport = async (reportType, forceRefresh = false) => {
-    console.log('🎯 Generating enhanced report for type:', reportType, forceRefresh ? '(FORCED REFRESH)' : '');
 
     // Handle special report types with real data (no caching needed for these)
     if (reportType === 'changes') {
@@ -1492,8 +1483,6 @@ export default function ProfileSettings({
     if (!forceRefresh) {
       const cachedReport = loadReportFromCache(reportType);
       if (cachedReport) {
-        console.log('⚡ Using cached report for:', reportType);
-
         // Show cached content immediately
         setGeneratedReportContent({
           type: reportType,
@@ -1515,7 +1504,6 @@ export default function ProfileSettings({
     setGeneratedReportContent(null);
 
     try {
-      console.log('🤖 Generating AI medical report for type:', reportType);
 
       // Map report type and prepare data
       const aiReportType = mapReportTypeToAI(reportType);
@@ -1536,19 +1524,13 @@ export default function ProfileSettings({
         notesCount: journalData.length
       };
 
-      console.log('📊 Enviando datos a IA:', {
-        journalEntries: journalData.length,
-        reportType: aiReportType,
-        userProfile: userProfileForAI.name || 'Sin nombre'
-      });
-
       // Load chat history for comprehensive context
       const chatHistory = JSON.parse(localStorage.getItem('lilith_chat_history') || '[]');
 
       // Call AI function with chat context
       const aiResponse = await generateMedicalReport(journalData, userProfileForAI, aiReportType, chatHistory);
 
-      console.log('✅ Respuesta de IA recibida');
+
 
       // Prepare report content
       const reportContent = {
@@ -1603,7 +1585,7 @@ export default function ProfileSettings({
     return String(val);
   };
 
-  // Convierte Markdown simple a HTML para mostrar en la UI
+  // Markdown to html
   const formatMarkdownToHTML = (markdown) => {
     if (!markdown) return '';
 
@@ -1798,8 +1780,6 @@ export default function ProfileSettings({
 
   // Generate specialized PDF for specific healthcare provider
   const generateSpecializedPDF = async (specialty, teamMember) => {
-    console.log('🏥 Generating specialized report for:', specialty, teamMember.name);
-
     // Map specialty to AI report type, including therapist
     const specialtyToReportType = {
       'doctor': 'medical',
@@ -1827,13 +1807,6 @@ export default function ProfileSettings({
         exerciseFreq: profile?.exerciseFreq || 'Not specified',
         notesCount: journalData.length
       };
-
-      console.log('📊 Generating specialized report:', {
-        for: teamMember.name,
-        specialty: specialty,
-        reportType: reportType,
-        journalEntries: journalData.length
-      });
 
       // Load chat history for comprehensive context
       const chatHistory = JSON.parse(localStorage.getItem('lilith_chat_history') || '[]');
@@ -2554,7 +2527,7 @@ export default function ProfileSettings({
                 </div>
               </div>
 
-              {/* ── CONTENIDO GENERADO POR IA ── */}
+              {/* ── AI GENERATED CONTENT ── */}
               {content.aiGenerated ? (
                 <div className="ai-report-content">
                   {reportError && (
@@ -2570,7 +2543,7 @@ export default function ProfileSettings({
                 </div>
               ) : (
                 <>
-                  {/* ── CONTENIDO ESTÁTICO ORIGINAL ── */}
+                  {/* ── ORIGINAL CONTENT ── */}
                   {content.sections?.map((sec, i) => (
                     <div key={i} className="report-section">
                       <div className="report-section-title">{sec.title}</div>
@@ -2647,7 +2620,7 @@ export default function ProfileSettings({
         <div className="ps-section">
           <div className="ps-section-label">Account & Data Management</div>
 
-          {/* BOTÓN DE EXPORTAR */}
+          {/* EXPORT */}
           <button
             onClick={exportUserData}
             style={{
@@ -2664,7 +2637,7 @@ export default function ProfileSettings({
               color: "rgba(255,255,255,0.6)",
               cursor: "pointer",
               transition: "all 0.2s",
-              marginBottom: "12px", // Espacio entre botones
+              marginBottom: "12px",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
@@ -2676,7 +2649,7 @@ export default function ProfileSettings({
             Export Data
           </button>
 
-          {/* TU BOTÓN DE RESET EXISTENTE */}
+          {/* RESET */}
           <button
             onClick={() => { if (window.confirm("Reset all data? This will clear your profile, notes, and cycle history.")) onReset && onReset(); }}
             style={{ width: "100%", padding: "12px", border: "1px solid rgba(232,122,122,0.3)", borderRadius: 1, background: "transparent", fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(232,122,122,0.7)", cursor: "pointer", transition: "all 0.2s" }}>

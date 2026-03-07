@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');`;
 
@@ -38,7 +38,7 @@ body{background:var(--void);}
 }
 .glow{position:fixed;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(140,100,220,0.07) 0%,transparent 70%);top:-150px;right:-150px;pointer-events:none;z-index:0;}
 
-/* ── LIST VIEW ── */
+/* LIST VIEW */
 .list-header{padding:52px 24px 20px;position:relative;z-index:1;animation:fadeUp 0.6s ease both;}
 .list-eyebrow{font-size:10px;font-weight:500;letter-spacing:0.25em;text-transform:uppercase;color:var(--lav-dim);margin-bottom:10px;}
 .list-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:400;letter-spacing:-0.02em;color:var(--ink);line-height:1.15;}
@@ -59,7 +59,7 @@ body{background:var(--void);}
 .import-banner-sub{font-family:'Crimson Pro',serif;font-size:13px;font-style:italic;color:var(--ink-ghost);}
 .import-banner-arrow{color:var(--ink-ghost);font-size:14px;}
 
-/* Stats */
+/* Stats row */
 .stats-row{display:flex;gap:8px;padding:0 24px;margin-bottom:20px;position:relative;z-index:1;animation:fadeUp 0.6s 0.1s ease both;}
 .stat-card{flex:1;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:2px;}
 .stat-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:400;color:var(--lav);letter-spacing:-0.02em;line-height:1;margin-bottom:4px;}
@@ -91,48 +91,23 @@ body{background:var(--void);}
 .day-tag.physical{border-color:rgba(232,180,196,0.25);color:var(--blossom-dim);}
 .day-tag.emotional{border-color:rgba(196,176,232,0.25);color:var(--lav-dim);}
 .day-tag.energy{border-color:rgba(212,184,150,0.25);color:var(--gold);}
-/* Food: Menta tenue */
-.day-tag.food {
-  border-color: rgba(180, 232, 210, 0.25);
-  color: #a3d4c0;
-}
-
-/* Movement: Azul deportivo tenue */
-.day-tag.movement {
-  border-color: rgba(180, 212, 232, 0.25);
-  color: #a3c1d4;
-}
-
-/* Meds: Coral tenue */
-.day-tag.meds {
-  border-color: rgba(232, 122, 122, 0.25);
-  color: #d16e6e;
-}
+.day-tag.food{border-color:rgba(180,232,210,0.25);color:#a3d4c0;}
+.day-tag.movement{border-color:rgba(180,212,232,0.25);color:#a3c1d4;}
+.day-tag.meds{border-color:rgba(232,122,122,0.25);color:#d16e6e;}
 .day-right{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:4px;}
 .day-note-count{font-size:10px;color:var(--ink-ghost);}
 .day-has-lilith{width:6px;height:6px;border-radius:50%;background:var(--lav);opacity:0.6;}
 
-/* Empty state */
-.empty-day{
-  padding:16px 0;border-bottom:1px solid var(--border);
-  display:flex;gap:14px;align-items:center;
-}
+/* Empty day row */
+.empty-day{padding:16px 0;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;}
 .empty-day-left{flex-shrink:0;width:40px;text-align:center;}
 .empty-day-num{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:var(--ink-ghost);opacity:0.4;line-height:1;}
 .empty-day-weekday{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-ghost);opacity:0.3;margin-top:2px;}
-.empty-day-add{
-  font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;
-  color:var(--ink-ghost);opacity:0.4;flex:1;
-}
-.add-past-btn{
-  font-size:11px;padding:4px 10px;border:1px dashed var(--border);
-  border-radius:1px;background:transparent;color:var(--ink-ghost);
-  cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;
-  letter-spacing:0.05em;flex-shrink:0;
-}
+.empty-day-add{font-family:'Crimson Pro',serif;font-size:14px;font-style:italic;color:var(--ink-ghost);opacity:0.4;flex:1;}
+.add-past-btn{font-size:11px;padding:4px 10px;border:1px dashed var(--border);border-radius:1px;background:transparent;color:var(--ink-ghost);cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;letter-spacing:0.05em;flex-shrink:0;}
 .add-past-btn:hover{border-color:var(--lav-dim);color:var(--lav);}
 
-/* ── DAY VIEW ── */
+/* DAY DETAIL VIEW */
 .day-view{position:relative;z-index:1;animation:slideIn 0.4s ease both;}
 .day-view-header{padding:48px 24px 20px;border-bottom:1px solid var(--border);}
 .back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--ink-ghost);cursor:pointer;letter-spacing:0.08em;padding:0;margin-bottom:20px;transition:color 0.2s;}
@@ -141,17 +116,7 @@ body{background:var(--void);}
 .dv-meta{display:flex;align-items:center;gap:10px;}
 .dv-phase-badge{font-size:10px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;padding:4px 10px;border:1px solid rgba(232,180,196,0.25);border-radius:1px;color:var(--blossom);}
 .dv-cycle-day{font-size:11px;color:var(--ink-ghost);font-family:'Crimson Pro',serif;font-style:italic;}
-
-/* Add note to past day */
-.dv-add-note-btn{
-  display:flex;align-items:center;gap:8px;
-  margin:20px 24px 0;padding:12px 16px;
-  border:1px dashed var(--border);border-radius:2px;
-  background:transparent;width:calc(100% - 48px);
-  font-family:'DM Sans',sans-serif;font-size:12px;
-  color:var(--ink-ghost);cursor:pointer;transition:all 0.2s;
-  letter-spacing:0.05em;
-}
+.dv-add-note-btn{display:flex;align-items:center;gap:8px;margin:20px 24px 0;padding:12px 16px;border:1px dashed var(--border);border-radius:2px;background:transparent;width:calc(100% - 48px);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--ink-ghost);cursor:pointer;transition:all 0.2s;letter-spacing:0.05em;}
 .dv-add-note-btn:hover{border-color:var(--lav-dim);color:var(--lav);}
 
 /* Timeline */
@@ -173,7 +138,7 @@ body{background:var(--void);}
 .dv-note-delete{background:none;border:none;color:var(--ink-ghost);cursor:pointer;font-size:12px;padding:2px 4px;opacity:0;transition:opacity 0.2s;margin-left:auto;}
 .dv-note:hover .dv-note-delete{opacity:1;}
 
-/* Lilith summary */
+/* Lilith summary card */
 .dv-lilith{margin:28px 24px 0;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:20px;position:relative;overflow:hidden;}
 .dv-lilith::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--lav-dim),transparent);opacity:0.4;}
 .dv-lilith-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
@@ -184,7 +149,7 @@ body{background:var(--void);}
 .dv-action-btn{padding:7px 14px;border:1px solid var(--border);border-radius:1px;background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--ink-ghost);cursor:pointer;transition:all 0.2s;letter-spacing:0.05em;}
 .dv-action-btn:hover{border-color:var(--lav-dim);color:var(--lav);}
 
-/* ── MODALS ── */
+/* MODALS */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,8,16,0.85);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
 .modal-sheet{width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);border-radius:2px 2px 0 0;padding:20px 24px 48px;animation:slideUp 0.3s ease both;max-height:85vh;overflow-y:auto;}
 .modal-handle{width:32px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
@@ -202,35 +167,9 @@ body{background:var(--void);}
 .modal-tag.active.physical{border-color:rgba(232,180,196,0.4);color:var(--blossom);background:rgba(232,180,196,0.06);}
 .modal-tag.active.emotional{border-color:rgba(196,176,232,0.4);color:var(--lav);background:rgba(196,176,232,0.06);}
 .modal-tag.active.energy{border-color:rgba(212,184,150,0.4);color:var(--gold);background:rgba(212,184,150,0.06);}
-/* --- NUEVOS TAGS PARA SELECCIÓN --- */
-
-/* Food: Un verde suave/menta */
-.modal-tag.active.food {
-  border-color: rgba(180, 232, 210, 0.4);
-  color: #b4e8d2;
-  background: rgba(180, 232, 210, 0.06);
-}
-
-/* Movement: Un azul cian/deportivo */
-.modal-tag.active.movement {
-  border-color: rgba(180, 212, 232, 0.4);
-  color: #b4d4e8;
-  background: rgba(180, 212, 232, 0.06);
-}
-
-/* Meds: Un coral/rosado fuerte (importante para resaltar medicación) */
-.modal-tag.active.meds {
-  border-color: rgba(232, 122, 122, 0.4);
-  color: #e87a7a;
-  background: rgba(232, 122, 122, 0.06);
-}
-
-/* OPCIONAL: Un estilo genérico por si agregas más tags en el futuro */
-.modal-tag.active {
-  border-color: var(--border-active);
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.05);
-}
+.modal-tag.active.food{border-color:rgba(180,232,210,0.4);color:#b4e8d2;background:rgba(180,232,210,0.06);}
+.modal-tag.active.movement{border-color:rgba(180,212,232,0.4);color:#b4d4e8;background:rgba(180,212,232,0.06);}
+.modal-tag.active.meds{border-color:rgba(232,122,122,0.4);color:#e87a7a;background:rgba(232,122,122,0.06);}
 .modal-actions{display:flex;gap:8px;margin-top:4px;}
 .modal-btn{flex:1;padding:13px;border:1px solid var(--border);border-radius:1px;background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-ghost);cursor:pointer;transition:all 0.2s;}
 .modal-btn:hover{border-color:var(--border-hover);}
@@ -238,7 +177,7 @@ body{background:var(--void);}
 .modal-btn.primary:hover{background:var(--lav-glow);}
 .modal-btn:disabled{opacity:0.3;cursor:not-allowed;}
 
-/* Import mode */
+/* Import flow */
 .import-steps{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
 .import-step{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--ink-ghost);line-height:1.5;}
 .import-step-num{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;margin-top:1px;}
@@ -261,15 +200,14 @@ body{background:var(--void);}
 .nav-item.active .nav-label{color:var(--lav);}
 `;
 
-// ── DATA ──────────────────────────────────────────────────────────────────────
-// getCycleDay is called with the cycle prop startDate at runtime
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+// Returns the cycle day (1-based) for a given date relative to cycleStart
 function getCycleDay(date, cycleStart, cycleLength = 28) {
   if (!cycleStart) return null;
   const start = new Date(cycleStart);
   const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
   if (diff < 0) return null;
-
-  // CORREGIDO: No usar módulo, calcular día real del ciclo actual
   return diff + 1;
 }
 
@@ -285,6 +223,7 @@ function dateKey(date) {
   return date.toISOString().split("T")[0];
 }
 
+// Returns an array of Date objects from start to end, newest first
 function getDaysInRange(start, end) {
   const days = [];
   const cur = new Date(end);
@@ -297,22 +236,21 @@ function getDaysInRange(start, end) {
 
 const TAG_OPTIONS = ["physical", "emotional", "energy", "food", "movement", "meds"];
 
-// ── SMART IMPORT PARSER ───────────────────────────────────────────────────────
-// Parses free-text like:
-// "Feb 3 — very tired, headache all day"
-// "January 15: started my period, bad cramps"
-// "3/10 gym was great, lots of energy"
+// ── IMPORT PARSER ─────────────────────────────────────────────────────────────
+// Parses free-text entries like:
+//   "Feb 3 — very tired, headache all day"
+//   "January 15: started my period, bad cramps"
+//   "3/10 gym was great, lots of energy"
 
 function parseImportText(raw, cycleStart = null, cycleLength = 28) {
   const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
   const results = [];
   const currentYear = new Date().getFullYear();
 
-  console.log('🔍 Parsing import with cycle context:', { cycleStart, cycleLength });
-
   const MONTHS = {
     jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
-    january: 0, february: 1, march: 2, april: 3, may_: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+    january: 0, february: 1, march: 2, april: 3, june: 5, july: 6, august: 7,
+    september: 8, october: 9, november: 10, december: 11,
   };
 
   for (const line of lines) {
@@ -321,21 +259,20 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
     let date = null;
     let text = line;
 
-    // Pattern: "Feb 7", "February 7", "feb 7th:" - PRIORIDAD ABSOLUTA
-    const monthDay = line.match(/^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?[,\-—:\s]+(.+)/i);
+    // Pattern: "Feb 7", "February 7", "feb 7th: ..."
+    const monthDay = line.match(
+      /^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?[,\-—:\s]+(.+)/i
+    );
     if (monthDay) {
-      const monthName = monthDay[1].toLowerCase().replace('_', '');
-      const mo = MONTHS[monthName];
+      const mo = MONTHS[monthDay[1].toLowerCase()];
       const dy = parseInt(monthDay[2]);
-
       if (mo !== undefined && dy >= 1 && dy <= 31) {
         date = new Date(currentYear, mo, dy);
         text = monthDay[3].trim();
-        console.log(`✅ Parsed month/day: ${monthName} ${dy} → ${date.toDateString()}`);
       }
     }
 
-    // Pattern: "07/02/2026" (dd/mm/yyyy) o "2/7" (m/d)
+    // Pattern: "07/02/2026" (dd/mm/yyyy) or "2/7" (m/d)
     if (!date) {
       const numDate = line.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?[,\-—:\s]+(.+)/);
       if (numDate) {
@@ -343,20 +280,17 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
         const b = parseInt(numDate[2]);
         const year = numDate[3] ? parseInt(numDate[3]) : currentYear;
 
-        // Si hay año, asumir dd/mm/yyyy, sino m/d
         if (numDate[3]) {
-          // Format: dd/mm/yyyy
+          // dd/mm/yyyy
           if (a >= 1 && a <= 31 && b >= 1 && b <= 12) {
             date = new Date(year, b - 1, a);
             text = numDate[4].trim();
-            console.log(`✅ Parsed dd/mm/yyyy: ${a}/${b}/${year} → ${date.toDateString()}`);
           }
         } else {
-          // Format: m/d
+          // m/d
           if (a >= 1 && a <= 12 && b >= 1 && b <= 31) {
             date = new Date(currentYear, a - 1, b);
             text = numDate[4].trim();
-            console.log(`✅ Parsed m/d: ${a}/${b} → ${date.toDateString()}`);
           }
         }
       }
@@ -368,16 +302,12 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
       if (iso) {
         date = new Date(iso[1]);
         text = iso[2].trim();
-        console.log(`✅ Parsed ISO: ${iso[1]} → ${date.toDateString()}`);
       }
     }
 
-    if (!date || !text) {
-      console.warn(`❌ Could not parse line: ${line}`);
-      continue;
-    }
+    if (!date || !text) continue;
 
-    // CALCULAR CYCLE DAY basado en cycleStart
+    // Compute cycle context for the entry date
     let cycleDay = null;
     let cyclePhase = null;
     let cycleId = null;
@@ -386,54 +316,39 @@ function parseImportText(raw, cycleStart = null, cycleLength = 28) {
       cycleDay = getCycleDay(date, cycleStart, cycleLength);
       cyclePhase = getPhase(cycleDay);
 
-      // Generar cycleId basado en el ciclo start
       const startDate = new Date(cycleStart);
-      cycleId = `cycle_${startDate.getFullYear()}_${String(startDate.getMonth() + 1).padStart(2, '0')}_${String(startDate.getDate()).padStart(2, '0')}`;
-
-      console.log(`🧮 Calculated for ${date.toDateString()}: Day ${cycleDay}, Phase: ${cyclePhase}`);
+      cycleId = `cycle_${startDate.getFullYear()}_${String(startDate.getMonth() + 1).padStart(2, "0")}_${String(startDate.getDate()).padStart(2, "0")}`;
     }
 
-    // Auto-detect tags from text
+    // Auto-detect tags from entry text
     const tags = [];
     const t = text.toLowerCase();
     if (/tired|fatigue|exhausted|cansad|agotad/.test(t)) tags.push("physical");
     if (/headache|dolor|cramps|cólicos|pain|nausea|bloat|senos|breast/.test(t)) tags.push("physical");
     if (/sad|cry|anxious|irritable|triste|llorando|ansiosa|desesperada|mood/.test(t)) tags.push("emotional");
-    if (/energy|energía|productive|tired|gym|workout|exercise|gym|entrené/.test(t)) tags.push("energy");
+    if (/energy|energía|productive|tired|gym|workout|exercise|entrené/.test(t)) tags.push("energy");
     if (/ate|eat|food|comi|cené|lunch|dinner|breakfast|hungry|craving/.test(t)) tags.push("food");
     if (/gym|yoga|run|walk|exercise|workout|pilates|entrené/.test(t)) tags.push("movement");
     if (/pill|medication|medicamento|pastilla|took|tomé/.test(t)) tags.push("meds");
 
-    const entry = {
+    results.push({
       id: Date.now() + Math.random(),
-      date: dateKey(date), // Fecha de la entrada (Feb 7, etc.)
+      date: dateKey(date),
       displayDate: date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
       time: "imported",
       text,
       tags: [...new Set(tags)],
-
-      // DATOS DEL CICLO CALCULADOS
       cycleDay,
       cyclePhase,
       cycleId,
-      cycleStartDate: cycleStart, // Para referencia
-
-      // TIMESTAMP CORRECTO: fecha de la nota, NO fecha de hoy
-      createdAt: date.toISOString(), // ← ESTO ERA EL PROBLEMA PRINCIPAL
-
-      // Metadata de importación
+      cycleStartDate: cycleStart,
+      createdAt: date.toISOString(), // Entry date, not today
       imported: true,
-      importedAt: new Date().toISOString()
-    };
-
-    results.push(entry);
-    console.log(`📝 Created entry:`, entry);
+      importedAt: new Date().toISOString(),
+    });
   }
 
-  const sorted = results.sort((a, b) => a.date.localeCompare(b.date));
-  console.log(`🎯 Parse complete: ${sorted.length} entries created`);
-
-  return sorted;
+  return results.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
@@ -447,60 +362,38 @@ export default function JournalScreen({
   cycle,
   currentCycle,
   currentCycleDay,
-  currentPhase
+  currentPhase,
 }) {
   const today = new Date();
 
-  // Calcular rango dinámico basado en las notas existentes
+  // Default range: last 90 days. Extend back if older notes exist.
   let rangeStart = new Date(today);
-  rangeStart.setDate(today.getDate() - 90); // Default: 90 días
+  rangeStart.setDate(today.getDate() - 90);
 
-  // Si hay notas, extender el rango para incluir la más antigua
   if (allNotes && allNotes.length > 0) {
     const oldestNoteDate = Math.min(...allNotes.map(n => new Date(n.date).getTime()));
     const calculatedStart = new Date(oldestNoteDate);
-
-    // Usar la fecha más antigua entre las dos
-    if (calculatedStart < rangeStart) {
-      rangeStart = calculatedStart;
-      console.log('📅 Extended range to include imported notes:', {
-        oldestNote: calculatedStart.toDateString(),
-        totalNotes: allNotes.length
-      });
-    }
+    if (calculatedStart < rangeStart) rangeStart = calculatedStart;
   }
 
-  // All days in range, newest first
   const allDays = getDaysInRange(rangeStart, today);
 
-  // Group by date
+  // Index notes by date key for O(1) lookup
   const notesByDate = {};
   (allNotes || []).forEach(n => {
     if (!notesByDate[n.date]) notesByDate[n.date] = [];
     notesByDate[n.date].push(n);
-
-    // Debug logging para verificar que las notas tienen cycleDayText fijo
-    if (n.cycleDayText || n.cycleDay) {
-      console.log('📋 Journal Note with cycle data:', {
-        date: n.date,
-        cycleDayText: n.cycleDayText,
-        cycleDay: n.cycleDay,
-        hasFixedDayTag: !!n.cycleDayText
-      });
-    }
   });
 
-  // Views
+  // ── State ─────────────────────────────────────────────────────────────────
   const [selectedDay, setSelectedDay] = useState(null);
   const [showImport, setShowImport] = useState(false);
-  const [showAddNote, setShowAddNote] = useState(null); // date string
+  const [showAddNote, setShowAddNote] = useState(null);
 
-  // Add note modal state
   const [noteText, setNoteText] = useState("");
   const [noteTime, setNoteTime] = useState("");
   const [noteTags, setNoteTags] = useState([]);
 
-  // Import state
   const [importText, setImportText] = useState("");
   const [importParsed, setImportParsed] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
@@ -508,15 +401,12 @@ export default function JournalScreen({
   const totalNotes = allNotes.length;
   const daysWithNotes = Object.keys(notesByDate).length;
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const toggleNoteTag = (t) => {
-    setNoteTags((prev) => {
-      // Protección: si por algo 'prev' no es array, lo volvemos uno
-      const currentTags = Array.isArray(prev) ? prev : [];
-      if (currentTags.includes(t)) {
-        return currentTags.filter((x) => x !== t);
-      } else {
-        return [...currentTags, t];
-      }
+    setNoteTags(prev => {
+      const current = Array.isArray(prev) ? prev : [];
+      return current.includes(t) ? current.filter(x => x !== t) : [...current, t];
     });
   };
 
@@ -541,59 +431,25 @@ export default function JournalScreen({
   const parseImport = () => {
     if (!importText.trim()) return;
     setImportLoading(true);
-
     setTimeout(() => {
-      // Pasar contexto del ciclo para calcular cycleDay correctamente
       const cycleStartDate = (currentCycle || cycle)?.startDate;
       const cycleLengthValue = (currentCycle || cycle)?.cycleLength || 28;
-
-      console.log('🔄 Starting import parse with cycle context:', {
-        cycleStartDate: cycleStartDate ? new Date(cycleStartDate).toDateString() : 'none',
-        cycleLength: cycleLengthValue,
-        sampleText: importText.slice(0, 100) + '...'
-      });
-
       const parsed = parseImportText(importText, cycleStartDate, cycleLengthValue);
       setImportParsed(parsed);
       setImportLoading(false);
-
-      console.log('✅ Import parsing completed:', {
-        totalEntries: parsed.length,
-        withCycleDays: parsed.filter(p => p.cycleDay).length,
-        dateRange: parsed.length > 0 ? `${parsed[0].displayDate} - ${parsed[parsed.length - 1].displayDate}` : 'none'
-      });
     }, 800);
   };
 
   const confirmImport = () => {
-    if (!importParsed || !importParsed.length) {
-      console.warn('❌ No parsed entries to import');
-      return;
-    }
-
-    console.log('💾 Saving imported entries:', {
-      count: importParsed.length,
-      method: addNotes ? 'bulk' : 'individual',
-      entries: importParsed.map(e => ({
-        date: e.date,
-        cycleDay: e.cycleDay,
-        text: e.text.slice(0, 30) + '...'
-      }))
-    });
-
-    // Guardar usando el método disponible
+    if (!importParsed?.length) return;
     if (addNotes) {
       addNotes(importParsed);
     } else if (addNote) {
       importParsed.forEach(entry => addNote(entry));
     }
-
-    // Limpiar estado
     setShowImport(false);
     setImportText("");
     setImportParsed(null);
-
-    console.log('✅ Import completed successfully');
   };
 
   // ── DAY DETAIL VIEW ────────────────────────────────────────────────────────
@@ -601,27 +457,18 @@ export default function JournalScreen({
     const dayNotes = (notesByDate[selectedDay] || []).sort((a, b) => a.time.localeCompare(b.time));
     const d = new Date(selectedDay + "T12:00:00");
 
-    // FIX CRÍTICO: Usar Day Tag FIJO de las notas guardadas, no recalcular
+    // Prefer cycle data saved on notes; fall back to live calculation
     const notesWithCycleData = dayNotes.filter(note => note.cycleDayText || note.cycleDay);
     const fixedCycleDayText = notesWithCycleData.length > 0
       ? (notesWithCycleData[0].cycleDayText || `Day ${notesWithCycleData[0].cycleDay}`)
       : null;
     const fixedCyclePhase = notesWithCycleData.length > 0 ? notesWithCycleData[0].cyclePhase : null;
 
-    // Fallback solo si no hay notas con cycle data guardado
     const cDay = fixedCycleDayText ? null : getCycleDay(d, cycle?.startDate, cycle?.cycleLength);
     const phase = fixedCyclePhase || getPhase(cDay);
 
     const isToday = selectedDay === dateKey(today);
     const isFuture = d > today;
-
-    console.log('📅 Day View - Using FIXED cycle data:', {
-      selectedDay,
-      fixedCycleDayText,
-      fixedCyclePhase,
-      notesWithCycleData: notesWithCycleData.length,
-      willNotRecalculate: !!fixedCycleDayText
-    });
 
     return (
       <>
@@ -636,13 +483,11 @@ export default function JournalScreen({
               </h2>
               <div className="dv-meta">
                 {phase && <span className="dv-phase-badge">{phase}</span>}
-                {/* FIX CRÍTICO: Mostrar Day Tag FIJO, no recalculado */}
-                {fixedCycleDayText && <span className="dv-cycle-day">{fixedCycleDayText} of cycle (fixed)</span>}
+                {fixedCycleDayText && <span className="dv-cycle-day">{fixedCycleDayText} of cycle</span>}
                 {!fixedCycleDayText && cDay && <span className="dv-cycle-day">Day {cDay} of cycle</span>}
               </div>
             </div>
 
-            {/* Add note to this day */}
             {!isFuture && (
               <button className="dv-add-note-btn" onClick={() => setShowAddNote(selectedDay)}>
                 + Add note to {isToday ? "today" : "this day"}
@@ -653,36 +498,34 @@ export default function JournalScreen({
               <p className="dv-section-label">
                 Notes · {dayNotes.length} {dayNotes.length === 1 ? "entry" : "entries"}
               </p>
-              {dayNotes.length === 0
-                ? <p style={{ fontFamily: "'Crimson Pro',serif", fontStyle: "italic", color: "var(--ink-ghost)", fontSize: 15 }}>
+              {dayNotes.length === 0 ? (
+                <p style={{ fontFamily: "'Crimson Pro',serif", fontStyle: "italic", color: "var(--ink-ghost)", fontSize: 15 }}>
                   No notes for this day yet.
                 </p>
-                : (
-                  <div className="dv-notes">
-                    {dayNotes.map((note, i) => (
-                      <div key={note.id} className="dv-note" style={{ animationDelay: `${i * 0.06}s` }}>
-                        <div className="dv-dot-wrap"><div className="dv-dot" /></div>
-                        <div className="dv-note-body">
-                          <div className="dv-note-time">{note.time}</div>
-                          <div className="dv-note-text">{note.text}</div>
-                          {note.tags.length > 0 && (
-                            <div className="dv-note-tags">
-                              {note.tags.map(t => <span key={t} className={`dv-tag ${t}`}>{t}</span>)}
-                            </div>
-                          )}
-                        </div>
-                        <button className="dv-note-delete" onClick={() => deleteNote(note.id)}>✕</button>
+              ) : (
+                <div className="dv-notes">
+                  {dayNotes.map((note, i) => (
+                    <div key={note.id} className="dv-note" style={{ animationDelay: `${i * 0.06}s` }}>
+                      <div className="dv-dot-wrap"><div className="dv-dot" /></div>
+                      <div className="dv-note-body">
+                        <div className="dv-note-time">{note.time}</div>
+                        <div className="dv-note-text">{note.text}</div>
+                        {note.tags.length > 0 && (
+                          <div className="dv-note-tags">
+                            {note.tags.map(t => <span key={t} className={`dv-tag ${t}`}>{t}</span>)}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )
-              }
+                      <button className="dv-note-delete" onClick={() => deleteNote(note.id)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Add note modal */}
           {showAddNote && (
-            <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAddNote(null) }}>
+            <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAddNote(null); }}>
               <div className="modal-sheet">
                 <div className="modal-handle" />
                 <div className="modal-title">Add note</div>
@@ -701,17 +544,8 @@ export default function JournalScreen({
                       <div
                         key={t}
                         className={`modal-tag ${isActive ? `active ${t}` : ""}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation(); // 👈 Esto detiene cualquier interferencia del modal
-                          toggleNoteTag(t);
-                        }}
-                        style={{
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          WebkitTapHighlightColor: 'transparent', // Mejora para móviles
-                          pointerEvents: 'auto' // Forzamos que reciba eventos
-                        }}
+                        onClick={e => { e.preventDefault(); e.stopPropagation(); toggleNoteTag(t); }}
+                        style={{ cursor: "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent" }}
                       >
                         {t}
                       </div>
@@ -727,7 +561,12 @@ export default function JournalScreen({
           )}
 
           <div className="bottom-nav">
-            {[{ id: "home", icon: "⚸", label: "Home" }, { id: "journal", icon: "◎", label: "Journal" }, { id: "lilith", icon: "✦", label: "Lilith" }, { id: "calendar", icon: "◫", label: "Cycle" }].map(item => (
+            {[
+              { id: "home", icon: "⚸", label: "Home" },
+              { id: "journal", icon: "◎", label: "Journal" },
+              { id: "lilith", icon: "✦", label: "Lilith" },
+              { id: "calendar", icon: "◫", label: "Cycle" },
+            ].map(item => (
               <button key={item.id} className={`nav-item ${(activeNav || "journal") === item.id ? "active" : ""}`} onClick={() => setActiveNav && setActiveNav(item.id)}>
                 <span className="nav-icon">{item.icon}</span>
                 <span className="nav-label">{item.label}</span>
@@ -740,9 +579,11 @@ export default function JournalScreen({
   }
 
   // ── LIST VIEW ──────────────────────────────────────────────────────────────
-  // Group days by week
-  const thisWeekStart = new Date(today); thisWeekStart.setDate(today.getDate() - today.getDay());
-  const lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+  const thisWeekStart = new Date(today);
+  thisWeekStart.setDate(today.getDate() - today.getDay());
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(thisWeekStart.getDate() - 7);
 
   const groupedDays = { "This week": [], "Last week": [], "Earlier": [] };
   allDays.forEach(d => {
@@ -751,17 +592,9 @@ export default function JournalScreen({
     else groupedDays["Earlier"].push(d);
   });
 
-  // ORDENAR dentro de cada grupo para cronología correcta
-  // Más reciente primero en cada sección
+  // Most recent first within each group
   Object.keys(groupedDays).forEach(key => {
     groupedDays[key].sort((a, b) => b.getTime() - a.getTime());
-  });
-
-  console.log('📊 Grouped days for display:', {
-    thisWeek: groupedDays["This week"].length,
-    lastWeek: groupedDays["Last week"].length,
-    earlier: groupedDays["Earlier"].length,
-    earliestDate: groupedDays["Earlier"][groupedDays["Earlier"].length - 1]?.toDateString()
   });
 
   return (
@@ -776,7 +609,6 @@ export default function JournalScreen({
           <p className="list-subtitle">Every note, every day — tap any day to add or edit.</p>
         </div>
 
-        {/* Import banner */}
         <div className="import-banner" onClick={() => setShowImport(true)}>
           <span className="import-banner-icon">📥</span>
           <div className="import-banner-body">
@@ -801,7 +633,6 @@ export default function JournalScreen({
           </div>
         </div>
 
-        {/* Day list grouped by week */}
         {Object.entries(groupedDays).map(([weekLabel, days]) => {
           if (!days.length) return null;
           return (
@@ -811,12 +642,10 @@ export default function JournalScreen({
                 const key = dateKey(d);
                 const dayNotes = notesByDate[key] || [];
 
-                // 1. CÁLCULO DINÁMICO REAL (Sincronizado con el resto de la app)
+                // Prefer live cycle calculation; fall back to data saved on notes
                 const activeCycle = currentCycle || cycle;
                 const calcCycleDay = getCycleDay(d, activeCycle?.startDate, activeCycle?.cycleLength);
 
-                // 2. PRIORIDAD: Si el cálculo dinámico da un día válido (>0), lo usamos.
-                // Solo usamos el texto guardado si no hay ciclo activo.
                 const notesWithCycleData = dayNotes.filter(note => note.cycleDayText || note.cycleDay);
                 const savedDayText = notesWithCycleData.length > 0
                   ? (notesWithCycleData[0].cycleDayText || `Day ${notesWithCycleData[0].cycleDay}`)
@@ -824,7 +653,6 @@ export default function JournalScreen({
 
                 const displayDayText = calcCycleDay > 0 ? `Day ${calcCycleDay}` : savedDayText;
 
-                // 3. DETERMINAR FASE
                 const savedPhase = notesWithCycleData.length > 0 ? notesWithCycleData[0].cyclePhase : null;
                 const phase = calcCycleDay > 0 ? getPhase(calcCycleDay) : (savedPhase || getPhase(null));
 
@@ -842,13 +670,10 @@ export default function JournalScreen({
                         <div className="day-meta">
                           {phase && <div className={`day-phase-dot phase-${phase}`} />}
                           {phase && <span className="day-phase-label">{phase}</span>}
-
-                          {/* Muestra el día calculado dinámicamente */}
-                          {displayDayText ? (
-                            <span className="day-cycle-label">{displayDayText}</span>
-                          ) : (
-                            <span className="day-date-label">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                          )}
+                          {displayDayText
+                            ? <span className="day-cycle-label">{displayDayText}</span>
+                            : <span className="day-date-label">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                          }
                         </div>
                         <div className="day-preview">{preview}</div>
                         <div className="day-tags">
@@ -857,7 +682,6 @@ export default function JournalScreen({
                           ))}
                         </div>
                       </div>
-
                     </button>
                   );
                 } else {
@@ -868,7 +692,10 @@ export default function JournalScreen({
                         <div className="empty-day-weekday">{d.toLocaleDateString("en-US", { weekday: "short" })}</div>
                       </div>
                       <div className="empty-day-add">No notes</div>
-                      <button className="add-past-btn" onClick={() => { setSelectedDay(key); setTimeout(() => setShowAddNote(key), 100); }}>
+                      <button
+                        className="add-past-btn"
+                        onClick={() => { setSelectedDay(key); setTimeout(() => setShowAddNote(key), 100); }}
+                      >
                         + Add
                       </button>
                     </div>
@@ -879,20 +706,19 @@ export default function JournalScreen({
           );
         })}
 
-        {/* ── IMPORT MODAL ── */}
+        {/* Import modal */}
         {showImport && (
           <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowImport(false); setImportParsed(null); } }}>
             <div className="modal-sheet">
               <div className="modal-handle" />
               <div className="modal-title">Import past entries</div>
               <div className="modal-sub">Paste your notes and Lilith will parse the dates automatically.</div>
-
               <div className="import-steps">
                 {[
                   "Each line = one entry",
                   "Start with the date: \"Feb 3\", \"2/3\", or \"2026-02-03\"",
                   "Then a separator: dash, colon, or space",
-                  "Then your note text"
+                  "Then your note text",
                 ].map((s, i) => (
                   <div key={i} className="import-step">
                     <span className="import-step-num">{i + 1}</span>
@@ -900,7 +726,6 @@ export default function JournalScreen({
                   </div>
                 ))}
               </div>
-
               <div className="modal-label">Your notes</div>
               <textarea
                 className="modal-textarea"
@@ -909,14 +734,12 @@ export default function JournalScreen({
                 value={importText}
                 onChange={e => { setImportText(e.target.value); setImportParsed(null); }}
               />
-
               {importLoading && (
                 <div className="import-spinner">
                   <div className="spinner" />
                   Parsing your entries...
                 </div>
               )}
-
               {importParsed && importParsed.length > 0 && (
                 <>
                   <div className="modal-label">{importParsed.length} entries found — review before saving</div>
@@ -935,13 +758,11 @@ export default function JournalScreen({
                   </div>
                 </>
               )}
-
               {importParsed && importParsed.length === 0 && (
                 <p style={{ fontFamily: "'Crimson Pro',serif", fontStyle: "italic", color: "var(--ink-ghost)", fontSize: 14, marginBottom: 14 }}>
                   Couldn't parse any entries. Make sure each line starts with a date.
                 </p>
               )}
-
               <div className="modal-actions">
                 <button className="modal-btn" onClick={() => { setShowImport(false); setImportParsed(null); }}>Cancel</button>
                 {!importParsed
@@ -953,9 +774,9 @@ export default function JournalScreen({
           </div>
         )}
 
-        {/* Add note modal from list view */}
+        {/* Add note modal (list view) */}
         {showAddNote && (
-          <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAddNote(null) }}>
+          <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAddNote(null); }}>
             <div className="modal-sheet">
               <div className="modal-handle" />
               <div className="modal-title">Add note</div>
@@ -969,7 +790,13 @@ export default function JournalScreen({
               <div className="modal-label">Tags</div>
               <div className="modal-tags">
                 {TAG_OPTIONS.map(t => (
-                  <button key={t} className={`modal-tag ${noteTags.includes(t) ? `active ${t}` : ""}`} onClick={() => toggleNoteTag(t)}>{t}</button>
+                  <button
+                    key={t}
+                    className={`modal-tag ${noteTags.includes(t) ? `active ${t}` : ""}`}
+                    onClick={() => toggleNoteTag(t)}
+                  >
+                    {t}
+                  </button>
                 ))}
               </div>
               <div className="modal-actions">
@@ -981,7 +808,12 @@ export default function JournalScreen({
         )}
 
         <div className="bottom-nav">
-          {[{ id: "home", icon: "⚸", label: "Home" }, { id: "journal", icon: "◎", label: "Journal" }, { id: "lilith", icon: "✦", label: "Lilith" }, { id: "calendar", icon: "◫", label: "Cycle" }].map(item => (
+          {[
+            { id: "home", icon: "⚸", label: "Home" },
+            { id: "journal", icon: "◎", label: "Journal" },
+            { id: "lilith", icon: "✦", label: "Lilith" },
+            { id: "calendar", icon: "◫", label: "Cycle" },
+          ].map(item => (
             <button key={item.id} className={`nav-item ${(activeNav || "journal") === item.id ? "active" : ""}`} onClick={() => setActiveNav && setActiveNav(item.id)}>
               <span className="nav-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>

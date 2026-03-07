@@ -1,27 +1,23 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// CYCLE CALCULATIONS - Lógica robusta de cálculo de ciclos
+// CYCLE CALCULATIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Calcula el día actual del ciclo basado en la fecha de inicio del último período
- * NO asume Día 1 automáticamente - calcula el día real basado en fechas
+ * Calculates the current cycle day based on the start date of the last period. 
+ * Does NOT automatically assume Day 1—calculates the actual day based on date data.
  */
 export function calculateCurrentCycleDay(lastPeriodStart, cycleLength = 28) {
   if (!lastPeriodStart) return null;
-  
+
   const today = new Date();
   const startDate = new Date(lastPeriodStart);
-  
-  // Si la fecha de inicio es en el futuro, algo está mal
+
   if (startDate > today) return null;
-  
+
   const diffTime = today - startDate;
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  // Calcular el día dentro del ciclo actual
-  // Importante: diffDays = 0 es Día 1, diffDays = 1 es Día 2, etc.
   const currentDay = diffDays + 1;
-  
+
   return {
     cycleDay: currentDay,
     daysSinceStart: diffDays,
@@ -30,11 +26,11 @@ export function calculateCurrentCycleDay(lastPeriodStart, cycleLength = 28) {
 }
 
 /**
- * Determina la fase del ciclo basada en el día
+ * Cycle phase calculation based on cycle day. This is a simplified model and may not be accurate for everyone, but it provides a general framework for understanding cycle phases.
  */
 export function calculatePhase(cycleDay) {
   if (!cycleDay || cycleDay < 1) return "unknown";
-  
+
   if (cycleDay <= 5) return "menstrual";
   if (cycleDay <= 13) return "follicular";
   if (cycleDay <= 16) return "ovulation";
@@ -42,24 +38,24 @@ export function calculatePhase(cycleDay) {
 }
 
 /**
- * Genera un ID único para un ciclo basado en su fecha de inicio
+ * Unique ID generator for cycles based on start date. This allows us to track cycles even if they are irregular, as the ID is tied to the actual date rather than just a sequential number.
  */
 export function generateCycleId(startDate) {
   const date = new Date(startDate);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  
+
   return `cycle_${year}_${month}_${day}`;
 }
 
 /**
- * Crea un nuevo objeto de ciclo con estructura completa
+ * Creates a new cycle object with a complete structure
  */
 export function createCycleSnapshot(startDate, cycleLength = 28, additionalData = {}) {
   const cycleId = generateCycleId(startDate);
   const calculation = calculateCurrentCycleDay(startDate, cycleLength);
-  
+
   return {
     id: cycleId,
     startDate: new Date(startDate).toISOString(),
@@ -73,13 +69,13 @@ export function createCycleSnapshot(startDate, cycleLength = 28, additionalData 
 }
 
 /**
- * Calcula estadísticas de un ciclo completado
+ * Calculates statistics for a completed cycle
  */
 export function calculateCycleStats(cycle, notes = []) {
   if (!cycle) return {};
-  
+
   const cycleNotes = notes.filter(note => note.cycleId === cycle.id);
-  
+
   return {
     totalNotes: cycleNotes.length,
     symptomsLogged: cycleNotes.filter(note => note.tags?.length > 0).length,
@@ -87,22 +83,22 @@ export function calculateCycleStats(cycle, notes = []) {
       const mood = note.tags?.find(tag => ['happy', 'sad', 'anxious', 'calm'].includes(tag));
       return mood ? acc + 1 : acc;
     }, 0),
-    duration: cycle.endDate ? 
-      Math.floor((new Date(cycle.endDate) - new Date(cycle.startDate)) / (1000 * 60 * 60 * 24)) : 
+    duration: cycle.endDate ?
+      Math.floor((new Date(cycle.endDate) - new Date(cycle.startDate)) / (1000 * 60 * 60 * 24)) :
       null
   };
 }
 
 /**
- * Determina si un ciclo debe ser marcado como completado
+ * Determines if a cycle should be marked as completed
  */
 export function shouldCompleteCycle(currentCycleDay, cycleLength) {
-  // Si estamos más allá del día esperado del ciclo, probablemente empezó uno nuevo
-  return currentCycleDay > cycleLength + 7; // 7 días de gracia para irregularidades
+  // If we are beyond the expected day of the cycle, we likely started a new one
+  return currentCycleDay > cycleLength + 7; // 7 days of grace for irregularities
 }
 
 /**
- * Función para debugging - muestra información del estado del ciclo
+ * Function for debugging - displays information about the cycle state
  */
 export function debugCycleState(cycle, notes = []) {
   console.group('🔄 Cycle Debug Info');

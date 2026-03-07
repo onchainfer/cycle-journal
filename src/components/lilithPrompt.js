@@ -28,7 +28,7 @@ export function buildLilithSystemPrompt(userProfile = {}, dailyLogs = [], screen
     // Process daily logs for context - REDUCED to prevent data bloat
     const recentLogs = dailyLogs.slice(-5); // Last 5 days only
     const lastLog = dailyLogs.length > 0 ? dailyLogs[dailyLogs.length - 1] : null;
-    
+
     const logsContext = recentLogs.length > 0
         ? recentLogs.map(log => {
             const dayInfo = log.date ? new Date(log.date).toLocaleDateString() : (log.cycleDay ? `Day ${log.cycleDay}` : 'Date unknown');
@@ -44,17 +44,17 @@ export function buildLilithSystemPrompt(userProfile = {}, dailyLogs = [], screen
 SCREEN CONTEXT - HOME:
 You're generating a SHORT greeting/insight based on their last log entry. Think of it as a warm text message from a best friend who knows their cycle. Maximum 2 sentences.
 ${lastLog ? `Last entry: ${lastLog.notes} ${lastLog.symptoms?.length ? `[${lastLog.symptoms.join(", ")}]` : ""}` : "No recent entries to reference."}`;
-            
+
             case 'cycle':
                 return `
 SCREEN CONTEXT - CYCLE ANALYSIS:
 You're analyzing their cycle patterns to find meaningful connections. Look for patterns like "Your migraines align with your ovulation dip" or "Your energy crashes match your progesterone rise." Be specific about timing and hormonal connections.`;
-            
+
             case 'chat':
                 return `
 SCREEN CONTEXT - CHAT:
 You're answering specific questions using their complete medical/hormonal profile. This is where you can dive deeper into their individual patterns and give personalized advice.`;
-            
+
             default:
                 return "";
         }
@@ -117,11 +117,11 @@ NEVER SAY:
 - Write long paragraphs
 
 EXAMPLES - SHORT AND SPECIFIC:
-"¿Ese flujo marrón es nuevo o lo has visto antes?"
-"¿El antojo de sal es físico o emocional?"
-"¿Cómo se siente el sexo esta semana comparado con la semana pasada?"
-"¿Ese dolor de cabeza se siente hormonal o por estrés?"
-"¿La ansiedad es constante o viene en oleadas?"
+"Is that brown discharge new, or have you experienced it before?"
+"Is the salt craving physical or emotional?"
+"How does sex feel this week compared to last week?"
+"Does that headache feel hormonal or stress-related?"
+"Is the anxiety constant, or does it come in waves?"
 
 REMEMBER:
 - No JSON, no technical stuff - just human conversation

@@ -21,25 +21,33 @@ ${FONTS}
   70%       { transform: translate(4%,-1%); }
   90%       { transform: translate(-3%,3%); }
 }
+@keyframes breatheMoon {
+  0%, 100% { opacity: 0.6; transform: scale(1);    filter: blur(0px); }
+  50%       { opacity: 1;   transform: scale(1.05); filter: blur(1px); }
+}
+@keyframes ctaGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(232,180,196,0.2);  border-color: rgba(232,180,196,0.4); }
+  50%       { box-shadow: 0 0 20px rgba(232,180,196,0.7); border-color: rgba(232,180,196,0.9); }
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --void:    #0a0810;
-  --deep:    #110e1a;
-  --surface: #1a1626;
-  --raised:  #221d30;
-  --border:  rgba(180,150,255,0.12);
+  --void:         #0a0810;
+  --deep:         #110e1a;
+  --surface:      #1a1626;
+  --raised:       #221d30;
+  --border:       rgba(180,150,255,0.12);
   --border-hover: rgba(180,150,255,0.35);
-  --lav:     #c4b0e8;
-  --lav-dim: #8b75b8;
-  --lav-glow:rgba(196,176,232,0.08);
-  --blossom: #e8b4c4;
-  --blossom-dim: #b87590;
-  --gold:    #d4b896;
-  --ink:     #f0eaf8;
-  --ink-soft:#b8afd0;
-  --ink-ghost:#6b6380;
+  --lav:          #c4b0e8;
+  --lav-dim:      #8b75b8;
+  --lav-glow:     rgba(196,176,232,0.08);
+  --blossom:      #e8b4c4;
+  --blossom-dim:  #b87590;
+  --gold:         #d4b896;
+  --ink:          #f0eaf8;
+  --ink-soft:     #b8afd0;
+  --ink-ghost:    #6b6380;
 }
 
 .ob-root {
@@ -76,87 +84,50 @@ ${FONTS}
   z-index: 0;
 }
 
-/* Lang screen */
+/* Splash screen */
 .lang-screen {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  text-align: center;
-  position: relative;
-  z-index: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px; text-align: center;
+  position: relative; z-index: 1;
   animation: fadeUp 0.8s ease both;
 }
 
 .lang-symbol {
   font-size: 48px;
-  color: var(--lav-dim);
+  color: #e8b4c4;
   margin-bottom: 32px;
-  display: block;
-  opacity: 0.7;
-  letter-spacing: -2px;
+  display: inline-block;
+  animation: breatheMoon 4s ease-in-out infinite;
 }
 
 .lang-title {
   font-family: 'Playfair Display', serif;
   font-size: clamp(36px, 7vw, 56px);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-  margin-bottom: 8px;
-  line-height: 1.1;
+  font-weight: 400; letter-spacing: -0.02em;
+  color: var(--ink); line-height: 1.1;
 }
-
-.lang-title em {
-  font-style: italic;
-  color: var(--lav);
-}
+.lang-title em { font-style: italic; color: var(--lav); }
 
 .lang-sub {
-  font-size: 14px;
-  color: var(--ink-ghost);
-  margin-bottom: 56px;
-  font-weight: 300;
-  letter-spacing: 0.02em;
+  font-size: 14px; color: var(--ink-ghost);
+  margin-bottom: 56px; font-weight: 300; letter-spacing: 0.02em;
 }
 
-.lang-btns {
-  display: flex;
-  gap: 12px;
-}
+.lang-btns { display: flex; gap: 12px; }
 
 .lang-btn {
-  padding: 14px 44px;
-  border: 1px solid var(--border);
-  border-radius: 1px;
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: all 0.25s;
+  padding: 14px 44px; border: 1px solid var(--border);
+  border-radius: 1px; background: transparent;
+  font-family: 'DM Sans', sans-serif; font-size: 12px;
+  font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--ink-soft); cursor: pointer; transition: all 0.25s;
 }
+.lang-btn:hover { border-color: var(--lav-dim); color: var(--lav); background: var(--lav-glow); }
 
-.lang-btn:hover {
-  border-color: var(--lav-dim);
-  color: var(--lav);
-  background: var(--lav-glow);
-}
-
-/* Progress */
-.ob-progress {
-  height: 1px;
-  background: var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
+/* Progress bar */
+.ob-progress { height: 1px; background: var(--border); position: sticky; top: 0; z-index: 50; }
 .ob-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--lav-dim), var(--blossom));
@@ -166,242 +137,122 @@ ${FONTS}
 
 /* Nav */
 .ob-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px 40px;
-  max-width: 680px;
-  margin: 0 auto;
-  width: 100%;
-  position: relative;
-  z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 40px; max-width: 680px; margin: 0 auto;
+  width: 100%; position: relative; z-index: 1;
 }
-
 .ob-back {
-  background: none;
-  border: none;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  color: var(--ink-ghost);
-  cursor: pointer;
-  letter-spacing: 0.08em;
-  padding: 0;
-  transition: color 0.2s;
+  background: none; border: none; font-family: 'DM Sans', sans-serif;
+  font-size: 12px; color: var(--ink-ghost); cursor: pointer;
+  letter-spacing: 0.08em; padding: 0; transition: color 0.2s;
 }
 .ob-back:hover { color: var(--lav); }
-
-.ob-step-count {
-  font-size: 10px;
-  color: var(--ink-ghost);
-  letter-spacing: 0.2em;
-  font-family: 'DM Sans', sans-serif;
-}
-
+.ob-step-count { font-size: 10px; color: var(--ink-ghost); letter-spacing: 0.2em; font-family: 'DM Sans', sans-serif; }
 .ob-skip {
-  background: none;
-  border: none;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  color: var(--ink-ghost);
-  cursor: pointer;
-  letter-spacing: 0.08em;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color 0.2s;
+  background: none; border: none; font-family: 'DM Sans', sans-serif;
+  font-size: 11px; color: var(--ink-ghost); cursor: pointer;
+  letter-spacing: 0.08em; padding: 0; text-decoration: underline;
+  text-underline-offset: 3px; transition: color 0.2s;
 }
 .ob-skip:hover { color: var(--ink-soft); }
 
-/* Screen */
+/* Step screen */
 .ob-screen {
-  max-width: 680px;
-  margin: 0 auto;
-  width: 100%;
-  padding: 8px 40px 48px;
-  position: relative;
-  z-index: 1;
+  max-width: 680px; margin: 0 auto; width: 100%;
+  padding: 8px 40px 48px; position: relative; z-index: 1;
   animation: fadeUp 0.5s ease both;
 }
-
 .ob-eyebrow {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--lav-dim);
-  margin-bottom: 16px;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.25em;
+  text-transform: uppercase; color: var(--lav-dim); margin-bottom: 16px;
 }
-
 .ob-title {
   font-family: 'Playfair Display', serif;
   font-size: clamp(26px, 4.5vw, 40px);
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  white-space: pre-line;
-  margin-bottom: 12px;
-  color: var(--ink);
+  font-weight: 400; line-height: 1.2; letter-spacing: -0.02em;
+  white-space: pre-line; margin-bottom: 12px; color: var(--ink);
 }
-
-.ob-title em {
-  font-style: italic;
-  color: var(--lav);
-}
-
+.ob-title em { font-style: italic; color: var(--lav); }
 .ob-sub {
-  font-family: 'Crimson Pro', serif;
-  font-size: 17px;
-  color: var(--ink-ghost);
-  line-height: 1.6;
-  margin-bottom: 36px;
-  font-weight: 300;
-  font-style: italic;
+  font-family: 'Crimson Pro', serif; font-size: 17px; color: var(--ink-ghost);
+  line-height: 1.6; margin-bottom: 36px; font-weight: 300; font-style: italic;
 }
 
-/* Input */
+/* Inputs */
 .ob-input {
-  width: 100%;
-  padding: 14px 0;
-  border: none;
+  width: 100%; padding: 14px 0; border: none;
   border-bottom: 1px solid var(--border);
-  font-family: 'Crimson Pro', serif;
-  font-size: 22px;
-  font-weight: 300;
-  color: var(--ink);
-  background: transparent;
-  outline: none;
-  transition: border-color 0.25s;
-  caret-color: var(--lav);
+  font-family: 'Crimson Pro', serif; font-size: 22px; font-weight: 300;
+  color: var(--ink); background: transparent; outline: none;
+  transition: border-color 0.25s; caret-color: var(--lav);
 }
 .ob-input:focus { border-bottom-color: var(--lav-dim); }
 .ob-input::placeholder { color: var(--ink-ghost); font-style: italic; }
 .ob-input-sm { font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 0; }
 
 .ob-date {
-  width: 100%;
-  padding: 12px 0;
-  border: none;
+  width: 100%; padding: 12px 0; border: none;
   border-bottom: 1px solid var(--border);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  color: var(--ink);
-  background: transparent;
-  outline: none;
-  transition: border-color 0.25s;
-  color-scheme: dark;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--ink);
+  background: transparent; outline: none; transition: border-color 0.25s; color-scheme: dark;
 }
 .ob-date:focus { border-bottom-color: var(--lav-dim); }
 
 .field-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ink-ghost);
-  margin-bottom: 8px;
-  margin-top: 28px;
+  display: block; font-size: 10px; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--ink-ghost); margin-bottom: 8px; margin-top: 28px;
 }
 
-/* Cards */
+/* Selection cards */
 .ob-cards { display: flex; flex-direction: column; gap: 8px; }
-
 .ob-card {
-  padding: 16px 20px;
-  border: 1px solid var(--border);
-  border-radius: 1px;
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
+  padding: 16px 20px; border: 1px solid var(--border); border-radius: 1px;
+  background: transparent; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.2s; text-align: left; width: 100%;
+  position: relative; overflow: hidden;
 }
 .ob-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--lav-glow);
-  opacity: 0;
-  transition: opacity 0.2s;
+  content: ''; position: absolute; inset: 0;
+  background: var(--lav-glow); opacity: 0; transition: opacity 0.2s;
 }
 .ob-card:hover { border-color: var(--border-hover); }
 .ob-card:hover::before { opacity: 1; }
-.ob-card.sel-lav { background: rgba(196,176,232,0.08); border-color: var(--lav-dim); }
+.ob-card.sel-lav  { background: rgba(196,176,232,0.08); border-color: var(--lav-dim); }
 .ob-card.sel-blos { background: rgba(232,180,196,0.08); border-color: var(--blossom-dim); }
-
-.ob-card-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-soft);
-  position: relative;
-}
-.ob-card.sel-lav .ob-card-label { color: var(--lav); }
+.ob-card-label { font-size: 14px; font-weight: 500; color: var(--ink-soft); position: relative; }
+.ob-card.sel-lav  .ob-card-label { color: var(--lav); }
 .ob-card.sel-blos .ob-card-label { color: var(--blossom); }
-
-.ob-card-sub {
-  font-size: 12px;
-  color: var(--ink-ghost);
-  margin-top: 3px;
-  font-weight: 300;
-  position: relative;
-}
+.ob-card-sub { font-size: 12px; color: var(--ink-ghost); margin-top: 3px; font-weight: 300; position: relative; }
 
 /* Chips */
 .ob-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-
 .ob-chip {
-  padding: 8px 16px;
-  border-radius: 1px;
-  border: 1px solid var(--border);
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  color: var(--ink-ghost);
-  cursor: pointer;
-  transition: all 0.2s;
-  letter-spacing: 0.02em;
+  padding: 8px 16px; border-radius: 1px; border: 1px solid var(--border);
+  background: transparent; font-family: 'DM Sans', sans-serif; font-size: 12px;
+  color: var(--ink-ghost); cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
 }
 .ob-chip:hover { border-color: var(--border-hover); color: var(--lav); }
-.ob-chip.sel-lav { background: rgba(196,176,232,0.1); border-color: var(--lav-dim); color: var(--lav); }
+.ob-chip.sel-lav  { background: rgba(196,176,232,0.1); border-color: var(--lav-dim);     color: var(--lav); }
 .ob-chip.sel-blos { background: rgba(232,180,196,0.1); border-color: var(--blossom-dim); color: var(--blossom); }
 
-/* Divider */
+/* Divider & section title */
 .ob-divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
-
 .ob-section-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 20px;
-  font-weight: 400;
-  font-style: italic;
-  line-height: 1.3;
-  white-space: pre-line;
-  margin-bottom: 18px;
-  color: var(--ink-soft);
+  font-family: 'Playfair Display', serif; font-size: 20px;
+  font-weight: 400; font-style: italic; line-height: 1.3;
+  white-space: pre-line; margin-bottom: 18px; color: var(--ink-soft);
 }
 
 /* Food grid */
-.ob-food-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
+.ob-food-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .ob-food-card {
-  padding: 18px 16px;
-  border: 1px solid var(--border);
-  border-radius: 1px;
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
+  padding: 18px 16px; border: 1px solid var(--border); border-radius: 1px;
+  background: transparent; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.2s; text-align: left;
 }
 .ob-food-card:hover { border-color: var(--border-hover); background: rgba(232,180,196,0.06); }
 .ob-food-card.selected { background: rgba(232,180,196,0.08); border-color: var(--blossom-dim); }
-
 .ob-food-emoji { font-size: 26px; margin-bottom: 10px; display: block; }
 .ob-food-label { font-size: 13px; font-weight: 500; color: var(--ink-soft); margin-bottom: 4px; }
 .ob-food-card.selected .ob-food-label { color: var(--blossom); }
@@ -409,190 +260,98 @@ ${FONTS}
 
 /* Textarea */
 .ob-textarea {
-  width: 100%;
-  padding: 14px 0;
-  border: none;
+  width: 100%; padding: 14px 0; border: none;
   border-bottom: 1px solid var(--border);
-  font-family: 'Crimson Pro', serif;
-  font-size: 19px;
-  font-weight: 300;
-  font-style: italic;
-  line-height: 1.8;
-  color: var(--ink);
-  background: transparent;
-  resize: none;
-  outline: none;
-  transition: border-color 0.25s;
-  caret-color: var(--lav);
+  font-family: 'Crimson Pro', serif; font-size: 19px; font-weight: 300;
+  font-style: italic; line-height: 1.8; color: var(--ink);
+  background: transparent; resize: none; outline: none;
+  transition: border-color 0.25s; caret-color: var(--lav);
 }
 .ob-textarea:focus { border-bottom-color: var(--lav-dim); }
 .ob-textarea::placeholder { color: var(--ink-ghost); }
-
 .ob-optional {
-  font-size: 11px;
-  color: var(--ink-ghost);
-  margin-top: 14px;
-  font-style: italic;
-  line-height: 1.6;
-  font-family: 'Crimson Pro', serif;
+  font-size: 11px; color: var(--ink-ghost); margin-top: 14px;
+  font-style: italic; line-height: 1.6; font-family: 'Crimson Pro', serif;
 }
 
 /* Medications */
 .ob-med-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
 .ob-med-row .ob-input-sm:first-child { flex: 2; }
-.ob-med-row .ob-input-sm:last-child { flex: 1; }
-
+.ob-med-row .ob-input-sm:last-child  { flex: 1; }
 .ob-add-btn {
-  background: none; border: none;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px; color: var(--lav-dim);
-  cursor: pointer; letter-spacing: 0.05em;
-  padding: 8px 0; text-align: left;
-  transition: color 0.2s;
+  background: none; border: none; font-family: 'DM Sans', sans-serif;
+  font-size: 12px; color: var(--lav-dim); cursor: pointer;
+  letter-spacing: 0.05em; padding: 8px 0; text-align: left; transition: color 0.2s;
 }
 .ob-add-btn:hover { color: var(--lav); }
-
 .ob-none-btn {
-  background: none; border: none;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px; color: var(--ink-ghost);
-  cursor: pointer; letter-spacing: 0.05em;
-  padding: 8px 0; text-decoration: underline;
-  text-underline-offset: 3px;
+  background: none; border: none; font-family: 'DM Sans', sans-serif;
+  font-size: 12px; color: var(--ink-ghost); cursor: pointer;
+  letter-spacing: 0.05em; padding: 8px 0;
+  text-decoration: underline; text-underline-offset: 3px;
 }
 
 /* CTA */
 .ob-cta-wrap {
-  padding: 0 40px 48px;
-  max-width: 680px;
-  margin: 0 auto;
-  width: 100%;
-  position: relative;
-  z-index: 1;
+  padding: 0 40px 48px; max-width: 680px; margin: 0 auto;
+  width: 100%; position: relative; z-index: 1;
 }
-
 .ob-cta {
-  width: 100%;
-  padding: 18px;
-  border: 1px solid rgba(196,176,232,0.3);
-  border-radius: 1px;
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--lav);
-  cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
+  width: 100%; padding: 18px; border: 1px solid rgba(196,176,232,0.3);
+  border-radius: 1px; background: transparent;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.25em; text-transform: uppercase; color: var(--lav);
+  cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
 }
 .ob-cta::before {
-  content: '';
-  position: absolute;
-  inset: 0;
+  content: ''; position: absolute; inset: 0;
   background: linear-gradient(135deg, rgba(196,176,232,0.08), rgba(232,180,196,0.08));
-  opacity: 0;
-  transition: opacity 0.3s;
+  opacity: 0; transition: opacity 0.3s;
 }
 .ob-cta:hover:not(:disabled)::before { opacity: 1; }
 .ob-cta:hover:not(:disabled) { border-color: var(--lav-dim); box-shadow: 0 0 24px rgba(196,176,232,0.12); }
 .ob-cta:disabled { border-color: var(--border); color: var(--ink-ghost); cursor: not-allowed; }
 
-/* All set */
+/* All-set screen */
 .allset-screen {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 40px;
-  max-width: 520px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 1;
-  animation: fadeUp 0.8s ease both;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 40px; max-width: 520px; margin: 0 auto;
+  position: relative; z-index: 1; animation: fadeUp 0.8s ease both;
 }
-
-.allset-symbol {
-  font-size: 52px;
-  color: var(--lav-dim);
-  margin-bottom: 36px;
-  display: block;
-  opacity: 0.8;
-}
-
+.allset-symbol { font-size: 52px; color: var(--lav-dim); margin-bottom: 36px; display: block; opacity: 0.8; }
 .allset-title {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(32px, 6vw, 50px);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  margin-bottom: 16px;
-  line-height: 1.15;
-  color: var(--ink);
+  font-size: clamp(32px, 6vw, 50px); font-weight: 400;
+  letter-spacing: -0.02em; margin-bottom: 16px; line-height: 1.15; color: var(--ink);
 }
-
 .allset-name { font-style: italic; color: var(--lav); }
-
 .allset-sub {
-  font-family: 'Crimson Pro', serif;
-  font-size: 18px;
-  color: var(--ink-ghost);
-  line-height: 1.7;
-  margin-bottom: 48px;
-  font-weight: 300;
-  font-style: italic;
+  font-family: 'Crimson Pro', serif; font-size: 18px; color: var(--ink-ghost);
+  line-height: 1.7; margin-bottom: 48px; font-weight: 300; font-style: italic;
 }
 
 /* Lilith intro card */
 .lilith-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1px;
-  padding: 20px 24px;
-  margin-bottom: 32px;
-  text-align: left;
-  position: relative;
-  width: 100%;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 1px; padding: 20px 24px; margin-bottom: 32px;
+  text-align: left; width: 100%;
 }
-.lilith-card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
+.lilith-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .lilith-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--lav);
-  animation: pulse 2.5s ease infinite;
-  flex-shrink: 0;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lav); animation: pulse 2.5s ease infinite; flex-shrink: 0;
 }
-.lilith-name {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--lav-dim);
-}
-.lilith-msg {
-  font-family: 'Crimson Pro', serif;
-  font-size: 16px;
-  font-style: italic;
-  color: var(--ink-soft);
-  line-height: 1.6;
-}
+.lilith-name { font-size: 11px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: var(--lav-dim); }
+.lilith-msg { font-family: 'Crimson Pro', serif; font-size: 16px; font-style: italic; color: var(--ink-soft); line-height: 1.6; }
 
 @media (max-width: 520px) {
   .ob-screen, .ob-nav, .ob-cta-wrap { padding-left: 24px; padding-right: 24px; }
-  .ob-food-grid { grid-template-columns: 1fr 1fr; }
   .lang-btns { flex-direction: column; }
 }
 `;
 
-// ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
+// ── TRANSLATIONS ──────────────────────────────────────────────────────────────
 const T = {
     en: {
         langTitle: "Own your \nbiology",
@@ -618,7 +377,8 @@ const T = {
             { value: "very_heavy", label: "It's a lot", sub: "Very heavy, sometimes clots" },
             { value: "variable", label: "Depends on the month", sub: "Changes cycle to cycle" },
         ],
-        s5ColorLabel: "Color", s5Colors: ["Light pink", "Bright red", "Dark red", "Brown", "Mixed"],
+        s5ColorLabel: "Color",
+        s5Colors: ["Light pink", "Bright red", "Dark red", "Brown", "Mixed"],
         s5PainLabel: "Pain level",
         s5PainOptions: ["No pain at all", "Mild, barely notice it", "Moderate, affects my day", "Severe, I can't function"],
         s6Title: "Does your body have\nanything extra going on?", s6Sub: "Diagnosed or just suspected — select all that apply.",
@@ -641,8 +401,10 @@ const T = {
         s8Title: "Any other medications\nor supplements?", s8Sub: "Antidepressants, thyroid meds, vitamins — anything daily.",
         s8Add: "+ Add another", s8NamePlaceholder: "Name", s8DosePlaceholder: "Dose", s8None: "None right now",
         s9Title: "A little more context\nabout your life.", s9Sub: "No judgment. Just context.",
-        s9KidsLabel: "Do you have children?", s9KidsOptions: ["Yes", "No", "Pregnant / trying", "Prefer not to say"],
-        s9SexLabel: "Are you sexually active?", s9SexOptions: ["Yes, regularly", "Sometimes", "No", "Prefer not to say"],
+        s9KidsLabel: "Do you have children?",
+        s9KidsOptions: ["Yes", "No", "Pregnant / trying", "Prefer not to say"],
+        s9SexLabel: "Are you sexually active?",
+        s9SexOptions: ["Yes, regularly", "Sometimes", "No", "Prefer not to say"],
         s10Title: "How do you\nmove your body?", s10Sub: "All kinds of movement count — there's no right answer.",
         s10FreqLabel: "How often?",
         s10FreqOptions: ["Every day, no exceptions", "4–5 times a week", "2–3 times a week", "Once a week or less", "I'm in my sedentary era"],
@@ -677,9 +439,14 @@ const T = {
             { value: "patterns", label: "Find patterns", sub: "Something feels off and I want to know what" },
             { value: "health", label: "General health tracking", sub: "A holistic picture of how I feel" },
         ],
-        s14Title: "Last one — tell us\nabout yourself.", s14Sub: "In your own words. Your lifestyle, how you usually feel, what matters to you. Anything you'd want Lilith to understand about you.", s14Placeholder: "I'm someone who...", s14Optional: "Optional — but the more you share, the more personalized your insights will be.",
-        s15Title: "We’re in,", s15Sub: "Your baseline is set and Lilith is officially online. Start logging your days—the more you tell her, the faster she’ll start spotting the patterns you’ve been missing.", s15Cta: "Sync with Lilith",
-        s15LilithMsg: "Hey! I’m Lilith, your biological co-pilot. I’m here to decode your cycle with more precision than any clinic ever would. Let's map your unique rhythm together—I've got your back.",
+        s14Title: "Last one — tell us\nabout yourself.",
+        s14Sub: "In your own words. Your lifestyle, how you usually feel, what matters to you. Anything you'd want Lilith to understand about you.",
+        s14Placeholder: "I'm someone who...",
+        s14Optional: "Optional — but the more you share, the more personalized your insights will be.",
+        s15Title: "We're in,",
+        s15Sub: "Your baseline is set and Lilith is officially online. Start logging your days — the more you tell her, the faster she'll start spotting the patterns you've been missing.",
+        s15Cta: "Sync with Lilith",
+        s15LilithMsg: "Hey! I'm Lilith, your biological co-pilot. I'm here to decode your cycle with more precision than any clinic ever would. Let's map your unique rhythm together — I've got your back.",
     },
     es: {
         langTitle: "Ella que nunca\nfue domada.",
@@ -705,7 +472,8 @@ const T = {
             { value: "very_heavy", label: "Es bastante", sub: "Muy abundante, a veces con coágulos" },
             { value: "variable", label: "Depende del mes", sub: "Cambia de ciclo en ciclo" },
         ],
-        s5ColorLabel: "Color", s5Colors: ["Rosa claro", "Rojo brillante", "Rojo oscuro", "Café", "Mixto"],
+        s5ColorLabel: "Color",
+        s5Colors: ["Rosa claro", "Rojo brillante", "Rojo oscuro", "Café", "Mixto"],
         s5PainLabel: "Nivel de dolor",
         s5PainOptions: ["Sin dolor", "Leve, casi no lo noto", "Moderado, afecta mi día", "Severo, no puedo funcionar"],
         s6Title: "¿Tu cuerpo tiene algo\nextra que considerar?", s6Sub: "Diagnosticado o sospechado — selecciona todo lo que aplique.",
@@ -728,8 +496,10 @@ const T = {
         s8Title: "¿Tomas otros\nmedicamentos o suplementos?", s8Sub: "Antidepresivos, tiroides, vitaminas — lo que sea parte de tu rutina diaria.",
         s8Add: "+ Agregar otro", s8NamePlaceholder: "Nombre", s8DosePlaceholder: "Dosis", s8None: "Ninguno por ahora",
         s9Title: "Un poco más de contexto\nsobre tu vida.", s9Sub: "Sin juicio. Solo contexto.",
-        s9KidsLabel: "¿Tienes hijos?", s9KidsOptions: ["Sí", "No", "Embarazada / intentando", "Prefiero no decir"],
-        s9SexLabel: "¿Tienes actividad sexual?", s9SexOptions: ["Sí, regularmente", "A veces", "No", "Prefiero no decir"],
+        s9KidsLabel: "¿Tienes hijos?",
+        s9KidsOptions: ["Sí", "No", "Embarazada / intentando", "Prefiero no decir"],
+        s9SexLabel: "¿Tienes actividad sexual?",
+        s9SexOptions: ["Sí, regularmente", "A veces", "No", "Prefiero no decir"],
         s10Title: "¿Cómo mueves\ntu cuerpo?", s10Sub: "Todo tipo de movimiento cuenta — no hay respuesta correcta.",
         s10FreqLabel: "¿Con qué frecuencia?",
         s10FreqOptions: ["Todos los días, sin excepción", "4–5 veces a la semana", "2–3 veces a la semana", "Una vez a la semana o menos", "Estoy en mi era sedentaria"],
@@ -764,10 +534,15 @@ const T = {
             { value: "patterns", label: "Encontrar patrones", sub: "Algo no se siente bien y quiero saber qué" },
             { value: "health", label: "Seguimiento de salud general", sub: "Una visión holística de cómo me siento" },
         ],
-        s14Title: "Última — cuéntanos\nsobre ti.", s14Sub: "Con tus propias palabras. Tu estilo de vida, cómo te sueles sentir, qué te importa. Lo que quieras que Lilith entienda sobre ti.", s14Placeholder: "Soy alguien que...", s14Optional: "Opcional — pero cuanto más compartas, más personalizados serán tus insights.",
-        s15Title: "Bienvenida,", s15Sub: "Tu perfil está listo. Lilith está aquí. Empieza a registrar tus días y ella comenzará a encontrar tus patrones.", s15Cta: "Empezar mi primera entrada",
+        s14Title: "Última — cuéntanos\nsobre ti.",
+        s14Sub: "Con tus propias palabras. Tu estilo de vida, cómo te sueles sentir, qué te importa. Lo que quieras que Lilith entienda sobre ti.",
+        s14Placeholder: "Soy alguien que...",
+        s14Optional: "Opcional — pero cuanto más compartas, más personalizados serán tus insights.",
+        s15Title: "Bienvenida,",
+        s15Sub: "Tu perfil está listo. Lilith está aquí. Empieza a registrar tus días y ella comenzará a encontrar tus patrones.",
+        s15Cta: "Empezar mi primera entrada",
         s15LilithMsg: "Hola. Soy Lilith — y ya sé más sobre tu ciclo de lo que la mayoría de los médicos te han preguntado. Vamos a descubrirte.",
-    }
+    },
 };
 
 const TOTAL = 14;
@@ -792,90 +567,34 @@ export default function Onboarding({ onComplete }) {
     const t = lang ? T[lang] : T.en;
     const set = (f, v) => setProfile(p => ({ ...p, [f]: v }));
     const toggleArr = (f, v) => setProfile(p => ({
-        ...p, [f]: p[f].includes(v) ? p[f].filter(x => x !== v) : [...p[f], v]
+        ...p, [f]: p[f].includes(v) ? p[f].filter(x => x !== v) : [...p[f], v],
     }));
 
     const next = () => setStep(s => Math.min(s + 1, TOTAL + 1));
     const back = () => setStep(s => Math.max(s - 1, 1));
 
-    // Start screen - single button
+    // ── Splash screen ──────────────────────────────────────────────────────────
     if (!lang) return (
         <>
-            {/* Mantenemos tu CSS original y SOLO añadimos las definiciones de animación */}
-            <style>{`
-            ${css} 
-
-            /* 1. Definición de Animación para la Black Moon (⚸) */
-            @keyframes breatheMoon {
-                0%, 100% { opacity: 0.6; transform: scale(1); filter: blur(0px); }
-                50% { opacity: 1; transform: scale(1.05); filter: blur(1px); }
-            }
-
-            /* 2. Definición de Animación para el Botón (Pulse Glow) */
-            @keyframes ctaGlow {
-                0%, 100% { 
-                    box-shadow: 0 0 5px rgba(232, 180, 196, 0.2); 
-                    border-color: rgba(232, 180, 196, 0.4); 
-                }
-                50% { 
-                    box-shadow: 0 0 20px rgba(232, 180, 196, 0.7); 
-                    border-color: rgba(232, 180, 196, 0.9); 
-                }
-            }
-
-            /* Aplicamos la animación a la luna */
-            .lang-symbol {
-                display: inline-block; /* Necesario para que el transform funcione */
-                animation: breatheMoon 4s ease-in-out infinite;
-                color: #e8b4c4; /* Aseguramos que tenga el color bonito */
-            }
-
-            /* Aplicamos la animación y el color al botón */
-            .ob-cta {
-                animation: ctaGlow 3s infinite ease-in-out;
-                transition: all 0.3s ease !important;
-            }
-            
-            .ob-cta:hover {
-                background-color: rgba(232, 180, 196, 0.1) !important;
-                transform: translateY(-1px);
-            }
-        `}</style>
-
+            <style>{css}</style>
             <div className="ob-root">
                 <div className="ob-glow" />
                 <div className="lang-screen">
                     <span className="lang-symbol">⚸</span>
-
-                    {/* 3. AÑADIMOS SEPARACIÓN AQUÍ (marginBottom) */}
-                    <h1 className="lang-title" style={{
-                        whiteSpace: "pre-line",
-                        marginBottom: '32px' // <--- ESPACIO ENTRE TITULO Y SUBTITULO
-                    }}>
+                    <h1 className="lang-title" style={{ whiteSpace: "pre-line", marginBottom: 32 }}>
                         {T.en.langTitle}
                     </h1>
-
-                    <p className="lang-sub">
-                        Female-centric biohacking protocol.
-                    </p>
-
-                    <div style={{ marginTop: '48px' }}>
+                    <p className="lang-sub">Female-centric biohacking protocol.</p>
+                    <div style={{ marginTop: 48 }}>
                         <button
                             className="ob-cta"
                             onClick={() => setLang("en")}
                             style={{
-                                maxWidth: '200px',
-                                margin: '0 auto',
-                                display: 'block',
-                                fontSize: '13px',
-                                fontWeight: '400',
-                                letterSpacing: '0.15em',
-                                padding: '20px 40px',
-                                // 4. ASEGURAMOS EL COLOR BONITO AQUÍ
-                                color: '#ffffff', // Letras blancas
-                                background: 'transparent', // Fondo transparente
-                                border: '1px solid rgba(232, 180, 196, 0.4)', // Borde del color rosa bonito
-                                cursor: 'pointer'
+                                maxWidth: 200, margin: "0 auto", display: "block",
+                                fontSize: 13, fontWeight: 400, letterSpacing: "0.15em",
+                                padding: "20px 40px", color: "#ffffff", background: "transparent",
+                                border: "1px solid rgba(232,180,196,0.4)", cursor: "pointer",
+                                animation: "ctaGlow 3s infinite ease-in-out",
                             }}
                         >
                             INITIALIZE SYSTEM
@@ -886,7 +605,7 @@ export default function Onboarding({ onComplete }) {
         </>
     );
 
-    // All set screen
+    // ── All-set screen ─────────────────────────────────────────────────────────
     if (step === TOTAL + 1) return (
         <>
             <style>{css}</style>
@@ -905,20 +624,7 @@ export default function Onboarding({ onComplete }) {
                         </div>
                         <p className="lilith-msg">{t.s15LilithMsg}</p>
                     </div>
-                    <button className="ob-cta" onClick={() => {
-                        console.log('🚨 ONBOARDING BUTTON CLICKED!');
-                        console.log('📋 Profile data to send:', profile);
-                        console.log('🌍 Language:', lang);
-                        console.log('🔧 onComplete function exists?', !!onComplete);
-
-                        if (onComplete) {
-                            console.log('✅ Calling onComplete...');
-                            onComplete(profile, lang);
-                            console.log('✅ onComplete called successfully');
-                        } else {
-                            console.error('❌ ERROR: onComplete function is missing!');
-                        }
-                    }}>
+                    <button className="ob-cta" onClick={() => onComplete && onComplete(profile, lang)}>
                         {t.s15Cta}
                     </button>
                 </div>
@@ -926,6 +632,7 @@ export default function Onboarding({ onComplete }) {
         </>
     );
 
+    // ── Step screens ───────────────────────────────────────────────────────────
     const progress = (step / TOTAL) * 100;
 
     const renderStep = () => {
@@ -996,8 +703,8 @@ export default function Onboarding({ onComplete }) {
                     </div>
                     <label className="field-label">{t.s5PainLabel}</label>
                     <div className="ob-cards">
-                        {t.s5PainOptions.map((o, i) => (
-                            <button key={i} className={`ob-card ${profile.periodPain === o ? "sel-blos" : ""}`}
+                        {t.s5PainOptions.map(o => (
+                            <button key={o} className={`ob-card ${profile.periodPain === o ? "sel-blos" : ""}`}
                                 onClick={() => set("periodPain", o)}>
                                 <div className="ob-card-label">{o}</div>
                             </button>
@@ -1059,9 +766,11 @@ export default function Onboarding({ onComplete }) {
                     {!profile.noMeds && profile.medications.map((med, i) => (
                         <div key={i} className="ob-med-row">
                             <input className="ob-input ob-input-sm" placeholder={t.s8NamePlaceholder}
-                                value={med.name} onChange={e => { const m = [...profile.medications]; m[i].name = e.target.value; set("medications", m); }} />
+                                value={med.name}
+                                onChange={e => { const m = [...profile.medications]; m[i].name = e.target.value; set("medications", m); }} />
                             <input className="ob-input ob-input-sm" placeholder={t.s8DosePlaceholder}
-                                value={med.dose} onChange={e => { const m = [...profile.medications]; m[i].dose = e.target.value; set("medications", m); }} />
+                                value={med.dose}
+                                onChange={e => { const m = [...profile.medications]; m[i].dose = e.target.value; set("medications", m); }} />
                         </div>
                     ))}
                     {!profile.noMeds && (
