@@ -7,9 +7,8 @@ import { buildLilithSystemPrompt } from '../components/lilithPrompt.js';
 
 const API_BASE = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'google/gemini-2.0-flash-lite-001'; // MODEL WITH 200 OK
-
-// 🔑 API KEY
-const OPENROUTER_KEY_DEV = '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';
+const rawKey = process.env.REACT_APP_OPENROUTER_KEY || "";
+const OPENROUTER_KEY_DEV = rawKey.replace(/[^a-zA-Z0-9-_]/g, '').trim();
 
 /**
  * Send a message to Lilith through OpenRouter API using Gemini Flash Lite
