@@ -595,7 +595,7 @@ ${FONTS}
 // ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
 const T = {
     en: {
-        langTitle: "She who was\nnever tamed.",
+        langTitle: "Own your \nbiology",
         langSub: "Choose your language",
         langEn: "English", langEs: "Español",
         skip: "Skip", back: "Back", continue: "Continue", allSet: "Begin",
@@ -624,7 +624,7 @@ const T = {
         s6Title: "Does your body have\nanything extra going on?", s6Sub: "Diagnosed or just suspected — select all that apply.",
         s6Physical: ["PMDD", "Endometriosis", "PCOS", "Fibroids", "Thyroid disorder", "Anemia", "Diabetes", "None", "Other"],
         s6NeuroTitle: "Some of us are wired\na little differently.",
-        s6Neuro: ["ADHD", "Autism / AuDHD", "Anxiety disorder", "Depression", "Bipolar disorder", "Other", "Prefer not to say"],
+        s6Neuro: ["ADHD", "Autism", "Anxiety disorder", "Depression", "Bipolar disorder", "Other", "Prefer not to say"],
         s7Title: "Any hormonal\ncontraception?", s7Sub: "This changes how your cycle behaves — important context.",
         s7Options: [
             { value: "none", label: "No hormonal contraception" },
@@ -678,8 +678,8 @@ const T = {
             { value: "health", label: "General health tracking", sub: "A holistic picture of how I feel" },
         ],
         s14Title: "Last one — tell us\nabout yourself.", s14Sub: "In your own words. Your lifestyle, how you usually feel, what matters to you. Anything you'd want Lilith to understand about you.", s14Placeholder: "I'm someone who...", s14Optional: "Optional — but the more you share, the more personalized your insights will be.",
-        s15Title: "Welcome,", s15Sub: "Your profile is ready. Lilith is here. Start logging your days and she'll start finding your patterns.", s15Cta: "Start my first entry",
-        s15LilithMsg: "Hey. I'm Lilith — and I already know more about your cycle than most doctors have ever asked about. Let's figure you out.",
+        s15Title: "We’re in,", s15Sub: "Your baseline is set and Lilith is officially online. Start logging your days—the more you tell her, the faster she’ll start spotting the patterns you’ve been missing.", s15Cta: "Sync with Lilith",
+        s15LilithMsg: "Hey! I’m Lilith, your biological co-pilot. I’m here to decode your cycle with more precision than any clinic ever would. Let's map your unique rhythm together—I've got your back.",
     },
     es: {
         langTitle: "Ella que nunca\nfue domada.",
@@ -711,7 +711,7 @@ const T = {
         s6Title: "¿Tu cuerpo tiene algo\nextra que considerar?", s6Sub: "Diagnosticado o sospechado — selecciona todo lo que aplique.",
         s6Physical: ["PMDD", "Endometriosis", "SOP / PCOS", "Fibromas", "Tiroides", "Anemia", "Diabetes", "Ninguno", "Otro"],
         s6NeuroTitle: "Algunas de nosotras\nestamos cableadas diferente.",
-        s6Neuro: ["TDAH", "Autismo / AuTDAH", "Trastorno de ansiedad", "Depresión", "Trastorno bipolar", "Otro", "Prefiero no decir"],
+        s6Neuro: ["TDAH", "Autismo", "Trastorno de ansiedad", "Depresión", "Trastorno bipolar", "Otro", "Prefiero no decir"],
         s7Title: "¿Usas algún método\nanticonceptivo hormonal?", s7Sub: "Esto cambia cómo funciona tu ciclo — contexto importante.",
         s7Options: [
             { value: "none", label: "No uso anticonceptivos hormonales" },
@@ -801,28 +801,84 @@ export default function Onboarding({ onComplete }) {
     // Start screen - single button
     if (!lang) return (
         <>
-            <style>{css}</style>
+            {/* Mantenemos tu CSS original y SOLO añadimos las definiciones de animación */}
+            <style>{`
+            ${css} 
+
+            /* 1. Definición de Animación para la Black Moon (⚸) */
+            @keyframes breatheMoon {
+                0%, 100% { opacity: 0.6; transform: scale(1); filter: blur(0px); }
+                50% { opacity: 1; transform: scale(1.05); filter: blur(1px); }
+            }
+
+            /* 2. Definición de Animación para el Botón (Pulse Glow) */
+            @keyframes ctaGlow {
+                0%, 100% { 
+                    box-shadow: 0 0 5px rgba(232, 180, 196, 0.2); 
+                    border-color: rgba(232, 180, 196, 0.4); 
+                }
+                50% { 
+                    box-shadow: 0 0 20px rgba(232, 180, 196, 0.7); 
+                    border-color: rgba(232, 180, 196, 0.9); 
+                }
+            }
+
+            /* Aplicamos la animación a la luna */
+            .lang-symbol {
+                display: inline-block; /* Necesario para que el transform funcione */
+                animation: breatheMoon 4s ease-in-out infinite;
+                color: #e8b4c4; /* Aseguramos que tenga el color bonito */
+            }
+
+            /* Aplicamos la animación y el color al botón */
+            .ob-cta {
+                animation: ctaGlow 3s infinite ease-in-out;
+                transition: all 0.3s ease !important;
+            }
+            
+            .ob-cta:hover {
+                background-color: rgba(232, 180, 196, 0.1) !important;
+                transform: translateY(-1px);
+            }
+        `}</style>
+
             <div className="ob-root">
                 <div className="ob-glow" />
                 <div className="lang-screen">
                     <span className="lang-symbol">⚸</span>
-                    <h1 className="lang-title" style={{ whiteSpace: "pre-line" }}>{T.en.langTitle}</h1>
-                    <p className="lang-sub">Your cycle, understood.</p>
+
+                    {/* 3. AÑADIMOS SEPARACIÓN AQUÍ (marginBottom) */}
+                    <h1 className="lang-title" style={{
+                        whiteSpace: "pre-line",
+                        marginBottom: '32px' // <--- ESPACIO ENTRE TITULO Y SUBTITULO
+                    }}>
+                        {T.en.langTitle}
+                    </h1>
+
+                    <p className="lang-sub">
+                        Female-centric biohacking protocol.
+                    </p>
+
                     <div style={{ marginTop: '48px' }}>
-                        <button 
-                            className="ob-cta" 
+                        <button
+                            className="ob-cta"
                             onClick={() => setLang("en")}
-                            style={{ 
-                                maxWidth: '200px', 
+                            style={{
+                                maxWidth: '200px',
                                 margin: '0 auto',
                                 display: 'block',
                                 fontSize: '13px',
                                 fontWeight: '400',
                                 letterSpacing: '0.15em',
-                                padding: '20px 40px'
+                                padding: '20px 40px',
+                                // 4. ASEGURAMOS EL COLOR BONITO AQUÍ
+                                color: '#ffffff', // Letras blancas
+                                background: 'transparent', // Fondo transparente
+                                border: '1px solid rgba(232, 180, 196, 0.4)', // Borde del color rosa bonito
+                                cursor: 'pointer'
                             }}
                         >
-                            Start
+                            INITIALIZE SYSTEM
                         </button>
                     </div>
                 </div>
@@ -854,7 +910,7 @@ export default function Onboarding({ onComplete }) {
                         console.log('📋 Profile data to send:', profile);
                         console.log('🌍 Language:', lang);
                         console.log('🔧 onComplete function exists?', !!onComplete);
-                        
+
                         if (onComplete) {
                             console.log('✅ Calling onComplete...');
                             onComplete(profile, lang);
