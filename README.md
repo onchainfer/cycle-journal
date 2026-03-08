@@ -2,7 +2,7 @@
 
 > **#75HER Hackathon Submission · CreateHerFest 2026**  
 > Live demo: [cycle-journal.vercel.app](https://cycle-journal.vercel.app)  
-> Demo video: [YouTube — add link before submission]  
+> Demo video: [\[YouTube — add link before submission\]](https://youtu.be/dm-l2zwaalw)  
 > License: MIT
 
 ---
